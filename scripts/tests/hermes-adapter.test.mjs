@@ -188,11 +188,14 @@ test('Hermes adapter infers explicit gateway projects without exposing origin me
         'private authoritative title', '/workspace/hermes-office', 'develop', '/workspace/hermes-office', 'jarvis', now - 25, 0, 0],
       ['unrelated', 'gpt-5.6-sol', null, now - 900, null, 1, 0, 0, 0, 0, 0, 0, 1,
         'private unrelated title', null, null, null, 'jarvis', now - 20, 0, 0],
+      ['compound-project', 'gpt-5.6-sol', null, now - 800, null, 1, 0, 0, 0, 0, 0, 0, 1,
+        'private compound title', null, null, null, 'jarvis', now - 15, 0, 0],
     ],
     origins: [
       ['radarr-parent', JSON.stringify({ auto_thread_initial_name: 'Work on our Radarr branch', user_name: 'PRIVATE_USER', message_id: 'PRIVATE_ID' })],
       ['authoritative', JSON.stringify({ chat_name: 'Work on the secret-shadow branch' })],
-      ['unrelated', JSON.stringify({ chat_name: 'PRIVATE_SECRET_DISCUSSION', auto_thread_initial_name: 'Working on payroll' })],
+      ['unrelated', JSON.stringify({ chat_name: 'private project discussion', chat_topic: 'Begin development of payroll', auto_thread_initial_name: 'project planning meeting' })],
+      ['compound-project', JSON.stringify({ auto_thread_initial_name: 'Begin development of hermes-office' })],
     ],
   });
 
@@ -204,6 +207,7 @@ test('Hermes adapter infers explicit gateway projects without exposing origin me
     assert.equal(byId('radarr-child').project, '/hermes-projects/radarr');
     assert.equal(byId('authoritative').project, '/workspace/hermes-office');
     assert.equal(byId('unrelated').project, null);
+    assert.equal(byId('compound-project').project, '/hermes-projects/hermes-office');
     assert.equal(adapter.getSessionDetail(byId('radarr-parent').sessionId).project, '/hermes-projects/radarr');
     assert.equal(adapter.getSessionDetail(byId('radarr-child').sessionId).project, '/hermes-projects/radarr');
 
@@ -216,17 +220,20 @@ test('Hermes adapter infers explicit gateway projects without exposing origin me
   }
 });
 
-test('Hermes adapter inherits an inferred project from a parent outside the recent-session window', () => {
+test('Hermes adapter inherits an inferred project through a recent parent from an older grandparent', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-office-adapter-'));
   const now = 2_000_000_000_000;
   const row = (id, parent, lastActivity) => [
     id, 'gpt-5.6-sol', parent, lastActivity - 1_000, null, 1, 0, 0, 0, 0, 0, 0, 1,
     'private title', null, null, null, 'jarvis', lastActivity, 0, 0,
   ];
-  const fillers = Array.from({ length: 513 }, (_, index) => row(`filler-${index}`, null, now - 600_000 - index));
+  const fillers = Array.from({ length: 512 }, (_, index) => row(`filler-${index}`, null, now - 600_000 - index));
   createStateDb(root, 'jarvis', {
-    sessions: [row('old-parent', null, now - 900_000), ...fillers, row('active-child', 'old-parent', now - 10)],
-    origins: [['old-parent', JSON.stringify({ auto_thread_initial_name: 'Work on our Radarr project' })]],
+    sessions: [
+      row('old-grandparent', null, now - 900_000), ...fillers,
+      row('recent-parent', 'old-grandparent', now - 600_000), row('active-child', 'recent-parent', now - 10),
+    ],
+    origins: [['old-grandparent', JSON.stringify({ auto_thread_initial_name: 'Work on our Radarr project' })]],
   });
 
   try {
@@ -234,6 +241,7 @@ test('Hermes adapter inherits an inferred project from a parent outside the rece
     const child = adapter.getActiveSessions(60_000)
       .find(session => session.sessionId === normalizedSessionId('jarvis', 'active-child'));
     assert.equal(child?.project, '/hermes-projects/radarr');
+    assert.equal(adapter.getSessionDetail(child.sessionId).project, '/hermes-projects/radarr');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

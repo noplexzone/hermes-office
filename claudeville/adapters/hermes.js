@@ -132,8 +132,9 @@ function inferProjectFromOrigin(rawOrigin) {
     .map(value => value.slice(0, ORIGIN_TEXT_LIMIT));
   const patterns = [
     /\b(?:work(?:ing)?|develop(?:ing)?|build(?:ing)?|implement(?:ing)?)\s+(?:on|in|for)\s+(?:(?:our|the|a|an)\s+)?([a-z0-9][a-z0-9._-]{1,63})\s+(?:branch|project|repo(?:sitory)?)\b/i,
-    /\b(?:project|repo(?:sitory)?)\s*[:=-]?\s*([a-z0-9][a-z0-9._-]{1,63})\b/i,
-    /\b([a-z0-9][a-z0-9._-]{1,63})\s+(?:branch|project|repo(?:sitory)?)\b/i,
+    /\b(?:begin(?:ning)?\s+)?(?:development|implementation)\s+of\s+(?:(?:our|the)\s+)?([a-z0-9]+(?:[._-][a-z0-9]+)+)\b/i,
+    /\b(?:project|branch|repo(?:sitory)?)\s*[:=]\s*([a-z0-9][a-z0-9._-]{1,63})\b/i,
+    /\b(?:project|branch|repo(?:sitory)?)\s+(?:is|named|called)\s+([a-z0-9][a-z0-9._-]{1,63})\b/i,
   ];
   for (const candidate of candidates) {
     for (const pattern of patterns) {
@@ -364,9 +365,17 @@ function parentRowsForActiveSessions(db, sessionColumns, knownRows, activeRows) 
   let pending = activeRows.map(row => String(row.parent_session_id || '')).filter(Boolean);
   for (let depth = 0; depth < 8 && pending.length && fetched.length < RECENT_SESSION_LIMIT; depth++) {
     const remaining = RECENT_SESSION_LIMIT - fetched.length;
-    const ids = [...new Set(pending)].filter(id => !known.has(id)).slice(0, remaining);
-    if (!ids.length) break;
     const next = [];
+    const unique = [...new Set(pending)];
+    for (const id of unique) {
+      const row = known.get(id);
+      if (row?.parent_session_id) next.push(String(row.parent_session_id));
+    }
+    const ids = unique.filter(id => !known.has(id)).slice(0, remaining);
+    if (!ids.length) {
+      pending = next;
+      continue;
+    }
     for (const batch of chunked(ids)) {
       const placeholders = batch.map(() => '?').join(',');
       try {
