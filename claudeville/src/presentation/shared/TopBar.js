@@ -2,14 +2,16 @@ import { eventBus } from '../../domain/events/DomainEvent.js';
 import { AmbientAudioController } from './AmbientAudioController.js';
 import { formatCost, formatNumber } from './Formatters.js';
 import { el, replaceChildren } from './DomSafe.js';
+import { listWorldThemes } from '../../config/worldThemes.js';
 
 export class TopBar {
-    constructor(world, { modal, attention, chronicle, spendLedger } = {}) {
+    constructor(world, { modal, attention, chronicle, spendLedger, worldThemeManager } = {}) {
         this.world = world;
         this.modal = modal || null;
         this.attention = attention || null;
         this.chronicle = chronicle || null;
         this.spendLedger = spendLedger || null;
+        this.worldThemeManager = worldThemeManager || null;
         this.els = {
             root: document.getElementById('topbar'),
             tokens: document.getElementById('statTokens'),
@@ -36,6 +38,7 @@ export class TopBar {
             quota5h: document.getElementById('statQuota5h'),
             quota7d: document.getElementById('statQuota7d'),
             quotaText: document.getElementById('statQuotaText'),
+            worldThemeSelect: document.getElementById('worldThemeSelect'),
         };
         this._usage = null;
         this.timeInterval = null;
@@ -53,6 +56,7 @@ export class TopBar {
         this._initCinemaToggle();
         this._initAttentionControls();
         this._initChronicleButton();
+        this._initWorldThemeSelector();
 
         this._onUpdate = () => this.render();
         eventBus.on('agent:added', this._onUpdate);
@@ -94,6 +98,22 @@ export class TopBar {
 
         this._startTimer();
         this.render();
+    }
+
+    _initWorldThemeSelector() {
+        const select = this.els.worldThemeSelect;
+        if (!select || !this.worldThemeManager) return;
+        replaceChildren(select, listWorldThemes().map((theme) => {
+            const option = el('option', { text: theme.name });
+            option.value = theme.id;
+            return option;
+        }));
+        select.value = this.worldThemeManager.current.id;
+        this._onWorldThemeChange = () => {
+            const changed = this.worldThemeManager.select(select.value);
+            if (!changed) select.value = this.worldThemeManager.current.id;
+        };
+        select.addEventListener('change', this._onWorldThemeChange);
     }
 
     // #attract — topbar toggle for the idle action camera (on by default,
@@ -535,6 +555,9 @@ export class TopBar {
         if (this._onAttentionKey) document.removeEventListener('keydown', this._onAttentionKey);
         if (this._onChronicleClick && this.els.chronicleBtn) {
             this.els.chronicleBtn.removeEventListener('click', this._onChronicleClick);
+        }
+        if (this._onWorldThemeChange && this.els.worldThemeSelect) {
+            this.els.worldThemeSelect.removeEventListener('change', this._onWorldThemeChange);
         }
         this.chronicle?.destroy?.();
         this.chronicle = null;

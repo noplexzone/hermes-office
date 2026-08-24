@@ -112,15 +112,15 @@ components:
 
 ## 1. Overview
 
-**Creative North Star: "The Keep at Night"** *(the chrome only)*
+**Default Creative North Star: "The Keep at Night"** *(the default world package and chrome)*
 
-"The Keep at Night" describes the DOM **frame**, not the whole app. The chrome is the interior of a darkened keep: walls of near-black timber, gold lamplight pooling along every bevelled panel edge, and at the center a window onto the village below. The chrome is never bright by default. It is meant to be left lit in the corner of a second monitor: quiet when the work is quiet, warm to glance at, and only loud when a single agent genuinely needs a person. Every chrome surface is *carved and torchlit*, raised plates with bevelled edges and a faint inset gold hairline, depth built from a warm highlight above and a dark drop below.
+"The Keep at Night" describes the default package's DOM **frame**, not the whole app. Its chrome is the interior of a darkened keep: walls of near-black timber, gold lamplight pooling along every bevelled panel edge, and at the center a window onto the village below. It is meant to be left lit in the corner of a second monitor: quiet when the work is quiet, warm to glance at, and only loud when a single agent genuinely needs a person. Alternate world packages may substitute their own restrained chrome tokens, but they cannot change canonical status/provider meaning or the calm second-monitor purpose.
 
-The window the frame surrounds is a *living* world. The canvas village runs on the real clock and weather: bright blue sky and lit water at midday, torchlit and moonlit at 2am. A permanently-dark keep framing a window onto a world that changes with the hour is the deliberate two-mood idea at the heart of ClaudeVille; do not flatten either half toward the other.
+The window the frame surrounds is a *living* world. Every package runs on the real clock and weather. The default canvas village is bright blue sky and lit water at midday, torchlit and moonlit at 2am. A restrained frame surrounding a world that changes with the hour is the deliberate two-mood idea at the heart of Hermes Office; do not flatten either half toward the other.
 
-This system serves a `brand`-register product: the village is the point, and the chrome is its frame, not a competing dashboard. It is built for one developer at a desktop (1280px and wider; no mobile, no fluid breakpoints). Density is high and type is small because the reward is a dense, hand-made little world, not a roomy app shell. Color is rationed: gold is light, not fill, and saturated hues belong to agent status alone.
+This system serves a `brand`-register product: the selected World is the point, and the chrome is its frame, not a competing dashboard. It is built for one developer at a desktop (1280px and wider; no mobile, no fluid breakpoints). Density is high and type is small because the reward is a dense, hand-made little world, not a roomy app shell. Decorative color remains rationed; saturated status hues belong to canonical agent status alone.
 
-This spec documents the DOM chrome only. The canvas village's own visual system (terrain and water palette, the nine buildings, sprite identity, and a real-time atmosphere engine for day/dusk/night, weather, and seasons) is canonical in `claudeville/src/config/theme.js`, `docs/visual-experience-crafting.md`, `docs/motion-budget.md`, and `docs/world-visual-qa-checklist.md`. Treat those as the reference for anything drawn on canvas.
+This spec documents the DOM chrome only. The selected package is canonical in `claudeville/src/config/worldThemes.js`; shared canvas mechanics remain canonical in `claudeville/src/config/theme.js`, `docs/visual-experience-crafting.md`, `docs/motion-budget.md`, and `docs/world-visual-qa-checklist.md`. Package registration, fallback behavior, and extension rules are documented in `docs/world-themes.md`.
 
 It explicitly rejects the look of a **generic SaaS dashboard** (cool grays, Inter, chart-card grids), **neon cyberpunk / synthwave** (glowing neon grids, purple-and-cyan), **corporate gamification** (badges, points, XP bars bolted onto a business app), and **mobile / casual-game UI** (bubbly buttons, candy gradients, juicy CTAs). It is a game world, hand-pixelled, not a gamified spreadsheet and not an App Store toy.
 
@@ -131,7 +131,7 @@ It explicitly rejects the look of a **generic SaaS dashboard** (cool grays, Inte
 - Saturated color reserved for agent status and provider identity, never decoration.
 - Near-square corners (1-3px); the changelog modal is the lone exception at 6px.
 - Calm at rest; motion is a status signal, with a reduced-motion fallback everywhere.
-- The canvas village is a separate, real-time visual system (day/night, weather); it is documented in `theme.js` and the world docs, not in this spec.
+- The selected canvas World is a separate, real-time visual system (day/night, weather); packages live in `worldThemes.js`, while shared mechanics remain in `theme.js` and the world docs.
 
 ## 2. Colors
 

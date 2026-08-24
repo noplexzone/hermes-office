@@ -14,7 +14,7 @@ The first release remains local, read-only, and desktop-only at 1280px or wider.
 
 Hermes Office turns the normally invisible activity of Hermes profiles and delegated agents into a place Caleb can understand without reading transcripts or maintaining the coordination state himself. It reads Hermes profile databases in SQLite read-only mode, normalizes sessions into the inherited ClaudeVille model, and renders them two ways: an isometric pixel-art **World** for ambient awareness and a dense **Dashboard** for exact state.
 
-The village remains the product's visual center. Jarvis, Light, L, and temporary workers are persistent characters rather than anonymous rows. Their locations, movement, status, and nearby landmarks communicate research, implementation, testing, review, shipping, incidents, and human attention. Dashboard mode is the precise operational ledger behind that world.
+The selected World remains the product's visual center. The default Keep at Night village and future world packages share the same truthful semantic landmarks, agent identities, and status language while changing their fiction, palette, terminology, and compatible assets. Jarvis, Light, L, and temporary workers are persistent characters rather than anonymous rows. Their locations, movement, status, and nearby landmarks communicate research, implementation, testing, review, shipping, incidents, and human attention. Dashboard mode is the precise operational ledger behind that world.
 
 Hermes Office is a downstream fork of `TokenBrice/claude-ville`. It retains ClaudeVille's MIT license, renderer, dashboard, sprites, pathfinding, adapters, and visual craft while making Hermes the primary coordinator and data source.
 
@@ -28,7 +28,7 @@ Direct database writes are never a control mechanism. Future actions must use su
 
 ## Brand Personality
 
-Competent, watchful, and quietly alive. The inherited medieval village is warm and characterful rather than corporate. The product should feel like a functioning command keep: agents have identity and motion, work has a place, and intervention signals are unmistakable without becoming noisy.
+Competent, watchful, and quietly alive. Each world package must be characterful rather than corporate. The default inherited village feels like a functioning command keep; alternate worlds may change the fiction, but agents retain identity and motion, work retains a stable place, and intervention signals remain unmistakable without becoming noisy.
 
 Voice is concise and in-world where that helps orientation. It may be lightly mythic, but operational labels remain plain. The app must not turn serious blockers, failed verification, or destructive controls into jokes.
 

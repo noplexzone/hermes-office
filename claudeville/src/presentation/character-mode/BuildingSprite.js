@@ -231,10 +231,12 @@ function chanceForDt(chancePerFrame, dt = 16) {
 }
 
 export class BuildingSprite {
-    constructor(assets, spriteRenderer, particleSystem) {
+    constructor(assets, spriteRenderer, particleSystem, { theme = null } = {}) {
         this.assets = assets;
         this.sprites = spriteRenderer;
         this.particles = particleSystem;
+        this.theme = theme;
+        this.labelShortText = { ...LABEL_SHORT_TEXT, ...Object.fromEntries(Object.entries(theme?.buildings || {}).map(([type, value]) => [type, value.shortLabel])) };
         this.buildings = [];
         this.agentSprites = [];
         this.hovered = null;
@@ -4319,7 +4321,7 @@ export class BuildingSprite {
     _labelTextFor(building, zoom, isHovered) {
         const label = this._resolveBuildingLabelText(building);
         if (zoom >= LABEL_DETAIL_ZOOM) return label;
-        const short = LABEL_SHORT_TEXT[building.type];
+        const short = this.labelShortText[building.type];
         if (short) return short;
         const words = label.split(/\s+/).filter(Boolean);
         if (words.length === 1) return label;
@@ -4330,7 +4332,7 @@ export class BuildingSprite {
     _resolveBuildingLabelText(building) {
         const explicit = String(building.label || '').trim();
         if (explicit) return explicit.toUpperCase();
-        const short = LABEL_SHORT_TEXT[building.type];
+        const short = this.labelShortText[building.type];
         if (short) return short.toUpperCase();
         if (!building.type) return '';
         const tokenized = String(building.type).replace(/[_-]/g, ' ');

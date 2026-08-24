@@ -1,6 +1,7 @@
 import { World } from '../domain/entities/World.js';
 import { Building } from '../domain/entities/Building.js';
 import { BUILDING_DEFS } from '../config/buildings.js';
+import { getThemedBuildingDefs } from '../config/worldThemes.js';
 import { eventBus } from '../domain/events/DomainEvent.js';
 import { i18n } from '../config/i18n.js';
 import { STATUS_VISUALS, STATUS_CSS_VARS } from '../config/theme.js';
@@ -20,6 +21,8 @@ import { AuroraGate } from '../application/AuroraGate.js';
 import { AgentBiographyService } from '../application/AgentBiographyService.js';
 import { MoodService } from '../application/MoodService.js';
 import { RelationshipAffinityService } from '../application/RelationshipAffinityService.js';
+import { WorldThemeManager } from '../application/WorldThemeManager.js';
+import { loadWorldThemeAssets } from '../application/WorldThemeAssetLoader.js';
 
 import { TopBar } from './shared/TopBar.js';
 import { Sidebar } from './shared/Sidebar.js';
@@ -39,6 +42,8 @@ const LIFECYCLE_DRAIN_TIMEOUT_MS = 2000;
 export class App {
     constructor() {
         this.world = null;
+        this.worldThemeManager = null;
+        this.worldTheme = null;
         this.dataSource = null;
         this.wsClient = null;
         this.agentManager = null;
@@ -116,9 +121,14 @@ export class App {
             // never fork (plan 1.1); reset.css holds identical fallbacks.
             this._stampStatusCssVars();
 
+            // Settle package-derived identity before world, asset, and renderer
+            // construction. Theme changes reload so these caches rebuild once.
+            this.worldThemeManager = new WorldThemeManager();
+            this.worldTheme = this.worldThemeManager.apply();
+
             // 1. Initialize domain
             this.world = new World();
-            for (const def of BUILDING_DEFS) {
+            for (const def of getThemedBuildingDefs(BUILDING_DEFS, this.worldTheme)) {
                 this.world.addBuilding(new Building(def));
             }
 
@@ -169,6 +179,7 @@ export class App {
                 attention: this.attentionService,
                 chronicle: this.chroniclePanel,
                 spendLedger: this.spendLedger,
+                worldThemeManager: this.worldThemeManager,
             });
             this.sidebar = new Sidebar(this.world);
 
@@ -217,9 +228,14 @@ export class App {
             this._bindResize();
 
             // 8. Preload sprite assets, then dynamically load character renderer
-            this.assets = new AssetManager();
-            await this.assets.load({ signal: this._bootController?.signal });
-            if (this._destroyed) return null;
+            this.assets = await loadWorldThemeAssets(this.worldTheme, {
+                AssetManagerClass: AssetManager,
+                signal: this._bootController?.signal,
+                onFallback: ({ failedManifestPath, manifestPath }) => {
+                    console.warn(`[App] theme manifest ${failedManifestPath} unavailable; using ${manifestPath}`);
+                },
+            });
+            if (!this.assets || this._destroyed) return null;
             const renderParams = new URLSearchParams(location.search);
             const materialWorldRequested = renderParams.get('renderer') !== 'canvas'
                 && renderParams.get('postfx') !== '0';
@@ -335,6 +351,7 @@ export class App {
                 moodService: this.moodService,
                 biographyService: this.biographyService,
                 affinityService: this.affinityService,
+                theme: this.worldTheme,
             });
             if (candidate.show(canvas) === false) {
                 throw new Error('IsometricRenderer failed to mount');

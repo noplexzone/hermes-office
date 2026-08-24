@@ -1,3 +1,5 @@
+import { applyWorldThemeProfileOverride } from '../../config/worldThemes.js';
+
 const DEFAULT_CODEX_IDENTITY = Object.freeze({
     family: 'codex',
     modelClass: 'codex',
@@ -517,7 +519,8 @@ export function getModelVisualIdentity(model, effort, provider = '', profile = '
     const identity = getBaseModelVisualIdentity(model, effort, provider);
     if (String(provider || '').toLowerCase() !== 'hermes') return identity;
     const profileVisual = HERMES_PROFILE_VISUALS[String(profile || '').trim().toLowerCase()];
-    return profileVisual ? { ...identity, ...profileVisual } : identity;
+    const profileIdentity = profileVisual ? { ...identity, ...profileVisual } : identity;
+    return applyWorldThemeProfileOverride(profileIdentity, profile);
 }
 
 export function formatModelLabel(model, effort, provider = '') {

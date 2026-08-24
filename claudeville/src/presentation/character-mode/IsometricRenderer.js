@@ -2,6 +2,7 @@ import { TILE_WIDTH, TILE_HEIGHT, MAP_SIZE } from '../../config/constants.js';
 import { THEME, WORLD_BODY_FONT } from '../../config/theme.js';
 import { drawPixelFlame, fillPixelEllipse, fillTileDiamond } from './PixelShapes.js';
 import { normalizeBuildingType } from '../../config/buildings.js';
+import { mergeWorldThemeTable } from '../../config/worldThemes.js';
 import { PORTAL_SPAWN_TILE, TOWN_ROAD_ROUTES, VILLAGE_GATE, VILLAGE_GATE_BOUNDS, VILLAGE_WALL_ROUTES } from '../../config/townPlan.js';
 import {
     AMBIENT_GROUND_PROPS,
@@ -434,6 +435,9 @@ class StaticPropSprite {
 export class IsometricRenderer {
     constructor(world, options = {}) {
         this.world = world;
+        this.theme = options.theme || null;
+        this.waterTokens = mergeWorldThemeTable(WATER_TOKENS, this.theme?.world?.waterTokens);
+        this.multiplyGrade = mergeWorldThemeTable(MULTIPLY_GRADE, this.theme?.world?.multiplyGrade);
         this.assets = options.assets || null;
         this.sprites = this.assets ? new SpriteRenderer(this.assets) : null;
         this.terrain = this.assets ? new TerrainTileset(this.assets) : null;
@@ -452,7 +456,7 @@ export class IsometricRenderer {
         this.cameraDirector = null;
         this.particleSystem = new ParticleSystem();
         this.buildingRenderer = this.assets
-            ? new BuildingSprite(this.assets, this.sprites, this.particleSystem)
+            ? new BuildingSprite(this.assets, this.sprites, this.particleSystem, { theme: this.theme })
             : null;
         this.harborTraffic = new HarborTraffic({ sprites: this.sprites });
         this.visitIntentManager = new VisitIntentManager({ world: this.world });
@@ -900,8 +904,8 @@ export class IsometricRenderer {
 
     _waterTokenAt(tileX, tileY, key = `${tileX},${tileY}`) {
         const region = this._waterRegionAt(tileX, tileY, key);
-        if (region === 'openSea') return WATER_TOKENS.sea;
-        return WATER_TOKENS[region] || WATER_TOKENS.water;
+        if (region === 'openSea') return this.waterTokens.sea;
+        return this.waterTokens[region] || this.waterTokens.water;
     }
 
     _isLagoonWaterTile(tileX, tileY, key = `${tileX},${tileY}`) {
@@ -1004,7 +1008,7 @@ export class IsometricRenderer {
                 screenX: (x - y) * TILE_WIDTH / 2,
                 screenY: (x + y) * TILE_HEIGHT / 2,
                 adjacent,
-                token: adjacent ? this._waterTokenAt(adjacent.x, adjacent.y, adjacent.key) : WATER_TOKENS.water,
+                token: adjacent ? this._waterTokenAt(adjacent.x, adjacent.y, adjacent.key) : this.waterTokens.water,
                 profile: adjacent ? this._waterProfileAt(adjacent.x, adjacent.y, adjacent.key) : 'water',
             });
         }
@@ -4262,7 +4266,8 @@ export class IsometricRenderer {
         const errors = agents.filter(agent => agent.status === AgentStatus.ERRORED || agent.status === AgentStatus.RATE_LIMITED).length;
         const working = agents.filter(agent => agent.status === AgentStatus.WORKING).length;
         const selected = this.selectedAgent?.name ? ` Selected ${this.selectedAgent.name}.` : '';
-        const text = `Village: ${agents.length} agents. ${needs} need you, ${errors} errored or quota-limited, ${working} working.${selected}`;
+        const place = this.theme?.atmosphere?.place || 'Village';
+        const text = `${place}: ${agents.length} agents. ${needs} need you, ${errors} errored or quota-limited, ${working} working.${selected}`;
         if (text !== this._semanticSummaryText) { this._semanticSummaryText = text; el.textContent = text; }
     }
 
@@ -6918,7 +6923,7 @@ export class IsometricRenderer {
         for (const wake of descriptors.slice(0, 16)) {
             const alpha = Math.min(0.22, (wake.alpha ?? 0.12) * (1 + roughness * 0.28));
             if (alpha <= 0.01) continue;
-            const token = WATER_TOKENS[wake.waterRegion] || WATER_TOKENS.harbor;
+            const token = this.waterTokens[wake.waterRegion] || this.waterTokens.harbor;
             // #35 — hull class scales every wake feature so push size reads at a
             // glance (skiff ~0.88 → flagship ~2.38).
             const hullScale = Math.max(0.85, Number(wake.wakeScale) || 1);
@@ -8944,7 +8949,7 @@ export class IsometricRenderer {
                 fill = waterToken.shallow;
             } else {
                 const drift = this._smoothNoise(tileX + 31, tileY + 47, 5);
-                fill = this._lerpColor(waterToken.shallow, WATER_TOKENS.water.shallow, drift * 0.7);
+                fill = this._lerpColor(waterToken.shallow, this.waterTokens.water.shallow, drift * 0.7);
             }
             // 2.2 — sandy bed: the tile of water right at the waterline warms
             // toward the shore sand so shallows read as wading depth.
@@ -10533,7 +10538,7 @@ export class IsometricRenderer {
         stamp.height = height;
         const stampCtx = stamp.getContext('2d');
         const phase = atmosphere?.phase || 'day';
-        const grade = MULTIPLY_GRADE[phase] || MULTIPLY_GRADE.day;
+        const grade = this.multiplyGrade[phase] || this.multiplyGrade.day;
         stampCtx.fillStyle = grade.base;
         stampCtx.fillRect(0, 0, width, height);
         const vignette = stampCtx.createRadialGradient(
@@ -10835,7 +10840,7 @@ export class IsometricRenderer {
         // values grade it. Painting the opaque base first, then a
         // transparent→dark radial, keeps the whole overlay opaque while
         // darkening toward the edges (the vignette).
-        const grade = MULTIPLY_GRADE[phase] || MULTIPLY_GRADE.day;
+        const grade = this.multiplyGrade[phase] || this.multiplyGrade.day;
         overlayCtx.fillStyle = grade.base;
         overlayCtx.fillRect(0, 0, canvas.width, canvas.height);
 
