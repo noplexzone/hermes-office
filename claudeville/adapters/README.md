@@ -1,6 +1,6 @@
 # Provider Adapters
 
-Read-only readers that pull active session data from local CLI provider stores (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.grok/`, `~/.kimi-code/`, `~/.local/share/opencode/`, and `~/.omp/`) and normalize it into a single shape the rest of ClaudeVille consumes.
+Read-only readers that pull active session data from Hermes Agent and local CLI provider stores (`~/.hermes/`, `~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.grok/`, `~/.kimi-code/`, `~/.local/share/opencode/`, and `~/.omp/`) and normalize it into a single shape the rest of Hermes Office consumes.
 
 ## Purpose
 
@@ -12,6 +12,7 @@ Registration and runtime metadata live in `claudeville/adapters/index.js`:
 
 ```js
 const adapters = [
+  new HermesAdapter(),
   new ClaudeAdapter(),
   new CodexAdapter(),
   new GeminiAdapter(),
@@ -48,7 +49,7 @@ Each adapter class must expose the following getters and methods. Getters are JS
 | Member | Kind | Returns | Consumer |
 | --- | --- | --- | --- |
 | `name` | getter | display string (e.g. `'Claude Code'`) | `getActiveProviders()`, surfaced via `/api/providers` |
-| `provider` | getter | stable id (`'claude'` / `'codex'` / `'gemini'` / `'grok'` / `'kimi'` / `'opencode'` / `'omp'`) | Adapter dispatch and adapter-backed session objects |
+| `provider` | getter | stable id (`'hermes'` / `'claude'` / `'codex'` / `'gemini'` / `'grok'` / `'kimi'` / `'opencode'` / `'omp'`) | Adapter dispatch and adapter-backed session objects |
 | `homeDir` | getter | absolute path to the provider's source dir | `getActiveProviders()` |
 | `isAvailable()` | method | `boolean` | Gates every registry iteration |
 | `getActiveSessions(activeThresholdMs)` | method | `Session[]` (see below) | Called from `server.js` per request and per polling tick |
@@ -77,7 +78,7 @@ Registry metadata treats adapter-backed providers as detail-capable when `getSes
 | Field | Type | Notes |
 | --- | --- | --- |
 | `sessionId` | string | Unique across providers. Codex, Gemini, Grok, Kimi, OpenCode, and OMP prefix with `codex-` / `gemini-` / `grok-` / `kimi-` / `opencode-` / `omp-`; Claude uses the raw uuid; subagents use `subagent-<agentId>`. Repository-only git sessions use `git-repo-<hash>`. |
-| `provider` | `'claude' \| 'codex' \| 'gemini' \| 'grok' \| 'kimi' \| 'opencode' \| 'omp' \| 'git'` | Adapter-backed sessions use the CLI/source provider id. DeepSeek-backed OpenCode sessions still use `provider: 'opencode'` and expose DeepSeek through `model`. OMP sessions use `provider: 'omp'` and expose their underlying provider through `underlyingProvider`. The registry can synthesize repository sessions with `provider: 'git'` for unpushed commit visibility. |
+| `provider` | `'hermes' \| 'claude' \| 'codex' \| 'gemini' \| 'grok' \| 'kimi' \| 'opencode' \| 'omp' \| 'git'` | Adapter-backed sessions use the CLI/source provider id. DeepSeek-backed OpenCode sessions still use `provider: 'opencode'` and expose DeepSeek through `model`. OMP sessions use `provider: 'omp'` and expose their underlying provider through `underlyingProvider`. The registry can synthesize repository sessions with `provider: 'git'` for unpushed commit visibility. |
 | `agentId` | string \| null | Provider-specific agent thread id; nullable for Gemini. |
 | `agentType` | `'main' \| 'sub-agent' \| 'team-member' \| 'workflow-subagent' \| 'repository'` | Drives sprite/card grouping. Default `'main'`. Synthetic git sessions use `'repository'`. Workflow tool sub-agents use `'workflow-subagent'`. |
 | `agentName` | string \| null | Human label when the provider exposes one (Codex `session_index.jsonl` `thread_name` with `agent_nickname` fallback, Claude team launch name). |
@@ -171,6 +172,12 @@ The 2-second polling interval in `startFileWatcher` is independent of these watc
    - `curl http://localhost:4000/api/sessions` — confirm normalized session objects come through.
 
 ## Per-provider mini-fixtures
+
+### Hermes Agent — `~/.hermes/profiles/<profile>/state.db` (SQLite)
+
+Hermes Office discovers the default `state.db` and profile databases below `profiles/*/state.db`. The adapter opens each database with `node:sqlite` in read-only and query-only mode, reads bounded recent metadata windows, and never returns raw prompts, titles, message bodies, reasoning, tool arguments, or tool-result bodies. Set `HERMES_OFFICE_HERMES_ROOT` to point at a mounted Hermes install root. `HERMES_HOME` is also honored and profile-scoped values are resolved back to their install root. Set comma-separated `HERMES_OFFICE_PROFILES` to restrict discovery to exact profile directory names.
+
+Normalized session ids use independently base64url-encoded components (`hermes.<encoded-profile>.<encoded-session>`), named profiles become stable `agentName` values, and parent ids are normalized within the same discovered profile. Unknown or malformed tool names become `custom_tool`. Hermes support requires Node.js 22.13 or newer for no-flag `node:sqlite`.
 
 These show the minimal shape each adapter's parser reads. Real files are longer; only the documented fields are required.
 

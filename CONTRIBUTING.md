@@ -1,6 +1,6 @@
-# Contributing To ClaudeVille
+# Contributing To Hermes Office
 
-ClaudeVille is a local-first dashboard for watching AI coding CLI sessions. Small, focused changes are easiest to review and keep the village stable.
+Hermes Office is a Hermes-first, local dashboard for watching agent sessions. It remains a downstream fork of ClaudeVille. Small, focused changes are easiest to review and keep the village stable.
 
 ## Good Contribution Lanes
 
@@ -16,7 +16,7 @@ Feature ideas usually work best in GitHub Discussions before implementation.
 
 1. Read `AGENTS.md` for repo workflow, validation, git hygiene, and desktop-only constraints.
 2. Read the nearest area README for the files you plan to touch.
-3. Keep provider session files read-only. ClaudeVille observes local CLI logs; it must not mutate them.
+3. Keep provider session files read-only. Hermes Office observes Hermes databases and local CLI logs; it must not mutate them.
 4. Keep changes narrow. Avoid unrelated refactors, generated churn, and formatting sweeps.
 5. Include screenshots for World, Dashboard, or visual asset changes.
 

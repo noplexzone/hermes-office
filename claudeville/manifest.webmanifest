@@ -1,7 +1,7 @@
 {
-  "name": "ClaudeVille — Agent Visualization",
-  "short_name": "ClaudeVille",
-  "description": "Watch your AI coding CLI sessions as a living village.",
+  "name": "Hermes Office — Agent Mission Control",
+  "short_name": "Hermes Office",
+  "description": "Watch Hermes agents and coding sessions work in a living village.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

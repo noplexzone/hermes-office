@@ -17,6 +17,7 @@ scripts/sprites/baselines/*-fresh.png
 .superpowers/
 .env
 .env.*
+!.env.example
 .dev.var
 .dev.vars
 

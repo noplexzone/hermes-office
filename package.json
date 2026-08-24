@@ -1,17 +1,17 @@
 {
-  "name": "claude-ville",
+  "name": "hermes-office",
   "version": "0.33.3",
-  "description": "Local-first dashboard for watching Claude Code, Codex CLI, Gemini, Grok, Kimi, and OpenCode sessions as an isometric pixel village and monitoring dashboard.",
+  "description": "Hermes-first mission control for watching AI agents work in an isometric pixel village and monitoring dashboard.",
   "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TokenBrice/claude-ville.git"
+    "url": "git+https://github.com/noplexzone/hermes-office.git"
   },
   "bugs": {
-    "url": "https://github.com/TokenBrice/claude-ville/issues"
+    "url": "https://github.com/noplexzone/hermes-office/issues"
   },
-  "homepage": "https://github.com/TokenBrice/claude-ville#readme",
+  "homepage": "https://github.com/noplexzone/hermes-office#readme",
   "keywords": [
     "ai-agents",
     "claude-code",
@@ -27,7 +27,7 @@
     "vanilla-js"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "dev": "node claudeville/server.js",

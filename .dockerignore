@@ -1,0 +1,11 @@
+.git
+.github
+.impeccable
+agents
+node_modules
+scripts
+coverage
+screenshots
+*.log
+.env
+.env.*

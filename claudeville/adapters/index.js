@@ -9,6 +9,7 @@ const { GrokAdapter } = require('./grok');
 const { KimiAdapter } = require('./kimi');
 const { OpenCodeAdapter } = require('./opencode');
 const { OmpAdapter } = require('./omp');
+const { HermesAdapter } = require('./hermes');
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -24,6 +25,7 @@ const {
 } = require('./gitEvents');
 
 const adapters = [
+  new HermesAdapter(),
   new ClaudeAdapter(),
   new CodexAdapter(),
   new GeminiAdapter(),

@@ -1,36 +1,36 @@
-# ClaudeVille
+# Hermes Office
 
-[![Version](https://img.shields.io/badge/version-v0.30.0-8a6f2a)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.33.3-8a6f2a)](./CHANGELOG.md)
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-3c873a)](./package.json)
+[![Node](https://img.shields.io/badge/node-%3E%3D22.13-3c873a)](./package.json)
 [![Runtime](https://img.shields.io/badge/runtime-zero--build-7c3aed)](#quick-start)
 [![Local first](https://img.shields.io/badge/local--first-read--only-0f766e)](#local-and-read-only)
-[![Providers](https://img.shields.io/badge/providers-6-f97316)](#supported-providers)
+[![Providers](https://img.shields.io/badge/providers-8-f97316)](#supported-providers)
 
-Watch your local AI coding CLIs work in a living pixel village.
+Watch Jarvis, Light, L, delegated workers, and local coding agents work in a living pixel village.
 
-ClaudeVille is a local-first dashboard for Claude Code, OpenAI Codex CLI, Google Gemini CLI, xAI Grok CLI, Kimi, and OpenCode sessions. It reads provider logs read-only, normalizes them into one session model, and renders active agents as either an isometric RPG village or a dense monitoring dashboard.
+Hermes Office is a Hermes-first mission-control fork of ClaudeVille. It reads Hermes profile databases and supported coding-CLI session stores read-only, normalizes them into one session model, and renders active agents as either an isometric RPG village or a dense monitoring dashboard.
 
 ![ClaudeVille World mode showing simulated AI coding agents in an isometric pixel village](./docs/assets/github/world-day.png)
 
 - **Local and read-only:** no hosted service, no telemetry, no provider-file writes.
-- **Multi-provider:** Claude Code, Codex CLI, Gemini CLI, Grok CLI, Kimi, and OpenCode.
+- **Hermes-first and multi-provider:** named Hermes profiles plus Claude Code, Codex CLI, Gemini CLI, Grok CLI, Kimi, OpenCode, and OMP.
 - **Glanceable:** World mode for second-monitor awareness; Dashboard mode for exact state.
 - **Zero-build runtime:** Node HTTP/WebSocket server plus static browser assets.
 
-Current version: **v0.30.0**. See [CHANGELOG.md](./CHANGELOG.md) for named releases and user-facing changes.
+Current inherited version: **v0.33.3**. See [CHANGELOG.md](./CHANGELOG.md) for named releases and user-facing changes.
 
-Active development lives in this repository. It is currently a public fork of `honorstudio/claude-ville`, but `TokenBrice/claude-ville` is the maintained branch for the current multi-provider ClaudeVille work.
+Hermes Office is maintained at `noplexzone/hermes-office` as a downstream fork of `TokenBrice/claude-ville`. The MIT license and upstream attribution are retained; the inherited renderer and adapters remain available while Hermes is the primary coordinator and data source.
 
-## Why ClaudeVille
+## Why Hermes Office
 
-ClaudeVille is a Claude Code dashboard, Codex CLI dashboard, and local AI agent observability tool built for the corner of your eye. It turns invisible local agent activity into a place you can leave open: agents move around the village by what they are doing, while Dashboard mode keeps token usage, cost, tools, status, and session detail available when you need exact state.
+Hermes Office turns invisible multi-agent project work into a place Caleb can leave open. Jarvis, Light, L, and temporary workers move through the village according to real activity, while Dashboard mode keeps exact provider, model, project, token, tool, status, and session detail available when needed.
 
 The app is intentionally small: a zero-dependency Node.js HTTP/WebSocket server, static browser assets, vanilla ES modules, and Canvas 2D rendering.
 
 ## Local And Read-Only
 
-ClaudeVille binds only to the IPv4 loopback interface at `localhost:4000` and reads supported CLI session stores from your machine. It does not write provider session files, does not proxy requests to a hosted service, and does not need a build step to run.
+Hermes Office binds to the IPv4 loopback interface at `localhost:4000` by default and reads Hermes/profile and supported CLI session stores from the machine. Container deployments can set `HERMES_OFFICE_HOST=0.0.0.0`; non-local browser hostnames remain rejected unless their exact `host:port` is listed in `HERMES_OFFICE_ALLOWED_HOSTS`. It does not write provider databases or session files, does not proxy requests to a hosted service, and does not need a build step to run.
 
 Desktop browser viewports 1280px wide and larger are the supported target. Empty provider lists are normal on machines where no supported CLI has local session files yet.
 
@@ -38,6 +38,7 @@ Desktop browser viewports 1280px wide and larger are the supported target. Empty
 
 | Provider | Local source |
 | --- | --- |
+| Hermes Agent | `~/.hermes/state.db` and `~/.hermes/profiles/*/state.db` |
 | Claude Code | `~/.claude/` |
 | Codex CLI | `~/.codex/sessions/` |
 | Gemini CLI | `~/.gemini/tmp/` |
@@ -62,6 +63,19 @@ npm run dev
 ```
 
 Open `http://localhost:4000`.
+
+### Container development image
+
+The CI workflow publishes `noplexzone/hermes-office:develop` plus an immutable `sha-<commit>` tag from the `develop` branch. `docker-compose.yml` mounts the Hermes install read-only at `/hermes`, runs with a read-only root filesystem and no Linux capabilities, and leaves non-local host access opt-in:
+Copy `.env.example` to `.env` and replace the example Hermes path and browser host, or provide the same values inline:
+
+```bash
+HERMES_ROOT=/absolute/path/to/.hermes \
+HERMES_OFFICE_ALLOWED_HOSTS=tower.local:4000 \
+docker compose up -d
+```
+
+Use the exact browser `host:port` in `HERMES_OFFICE_ALLOWED_HOSTS`; comma-separate multiple values. The application never accepts a wildcard trusted host. Set `HERMES_OFFICE_PROFILES=jarvis,light,l` (the Compose default) to scan only the named agents that belong in this office; omit it to discover every profile.
 
 Runtime is dependency-free: `npm run dev` uses only Node built-ins and static browser files. The repo also has a `package-lock.json` and dev dependencies for sprite validation, visual diffs, and Playwright-based capture scripts; run `npm install` only when those development scripts are needed.
 
@@ -103,9 +117,10 @@ For an unfamiliar agent, read these first:
 ## Requirements
 
 - Desktop browser at 1280px wide or larger. Mobile and narrow viewports are out of scope.
-- Node.js 18 or newer.
+- Node.js 22.13 or newer (`node:sqlite` is available without a runtime flag).
 - `npm install` only for dev scripts that import packages (`js-yaml`, `pngjs`, `pixelmatch`, `playwright`). The server itself does not need installed packages.
 - At least one local provider home directory:
+  - Hermes Agent: `~/.hermes/state.db` and `~/.hermes/profiles/*/state.db`
   - Claude Code: `~/.claude/`
   - Codex CLI: `~/.codex/` (sessions are read from `~/.codex/sessions/`)
   - Gemini CLI: `~/.gemini/` (sessions are read from `~/.gemini/tmp/`)
@@ -118,11 +133,12 @@ Empty provider lists are normal on machines where no supported CLI has local ses
 ## Project Layout
 
 ```text
-claude-ville/
+hermes-office/
 |-- claudeville/
 |   |-- server.js                  # Node HTTP server and hand-written WebSocket support
 |   |-- index.html                 # Browser entrypoint
 |   |-- adapters/                  # Provider-specific local session parsers
+|   |   |-- hermes.js              # Read-only Hermes profile SQLite adapter
 |   |   |-- claude.js
 |   |   |-- codex.js
 |   |   |-- gemini.js
@@ -151,7 +167,7 @@ claude-ville/
 
 ## Runtime Architecture
 
-`claudeville/server.js` binds to `127.0.0.1`, serves static files from `claudeville/`, exposes same-origin JSON API endpoints, upgrades WebSocket clients at `ws://localhost:4000/ws`, watches provider data paths, and broadcasts updates while clients are connected. Updates are debounced on filesystem events; a 2-second interval also runs unconditionally, with broadcasts becoming no-ops when no WebSocket clients are connected.
+`claudeville/server.js` binds to `HERMES_OFFICE_HOST` (default `127.0.0.1`) on `HERMES_OFFICE_PORT` (default `4000`), serves static files from `claudeville/`, exposes same-origin JSON API endpoints, upgrades WebSocket clients at `ws://localhost:4000/ws`, watches provider data paths, and broadcasts updates while clients are connected. Updates are debounced on filesystem events; a 2-second interval also runs unconditionally, with broadcasts becoming no-ops when no WebSocket clients are connected.
 
 The frontend boot path is `claudeville/src/presentation/App.js`:
 
@@ -170,7 +186,7 @@ The layout is a full-height flex shell: fixed-height top bar, left sidebar, cent
 
 ## Local Server API
 
-The server is hardcoded to port `4000` and the IPv4 loopback interface. Requests with a non-local `Host` or a cross-origin browser `Origin` are rejected; origin-less local CLI requests remain supported.
+The server defaults to port `4000` and the IPv4 loopback interface. `HERMES_OFFICE_HOST` and `HERMES_OFFICE_PORT` override the listener for containers. Requests with a non-local `Host` are rejected unless the exact lowercase `host:port` appears in comma-separated `HERMES_OFFICE_ALLOWED_HOSTS`; cross-origin browser `Origin` values are rejected, while origin-less CLI requests remain supported.
 
 | Endpoint | Description |
 | --- | --- |

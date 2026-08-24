@@ -1,0 +1,26 @@
+services:
+  hermes-office:
+    image: noplexzone/hermes-office:develop
+    container_name: hermes-office
+    environment:
+      HERMES_OFFICE_HERMES_ROOT: /hermes
+      HERMES_OFFICE_HOST: 0.0.0.0
+      HERMES_OFFICE_PORT: 4000
+      HERMES_OFFICE_PROFILES: ${HERMES_OFFICE_PROFILES:-jarvis,light,l}
+      # Add the exact LAN host:port used in the browser, e.g. tower.local:4000.
+      HERMES_OFFICE_ALLOWED_HOSTS: ${HERMES_OFFICE_ALLOWED_HOSTS:-}
+    ports:
+      - "4000:4000"
+    volumes:
+      - ${HERMES_ROOT:-/home/hermes/.hermes}:/hermes:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      project: hermes-office
+      managed-by: jarvis

@@ -1,10 +1,10 @@
 ## Scope
 
-- Work from `/home/ahirice/Documents/git/claude-ville`.
-- ClaudeVille is a local, zero-build dashboard for watching AI coding CLI sessions as a browser "village".
+- Work from `/mnt/user/appdata/dev/hermes-office`.
+- Hermes Office is a Hermes-first, local, zero-build mission-control fork of ClaudeVille. Hermes/profile data remains read-only.
 - Desktop-only target: assume browser viewports ≥1280px wide. Do not add `@media` queries, mobile/narrow-viewport testing, or responsive shrinking.
 - Touch only files needed for the task. Shared checkout: start with `git status --short`, preserve unrelated edits, prefer `rg`/`rg --files` for discovery.
-- No install step, bundler, transpiler, lint, formatter, or CI. Tests are limited to dependency-free `node:test` cases over pure logic (`npm run test:unit`, part of `validate:quick`); there is no browser/component test runner.
+- The runtime remains zero-build and dependency-free. Development checks use `npm ci` plus `validate:quick`; CI validates and publishes the `develop` image. Tests remain dependency-free `node:test` cases over pure logic; there is no browser/component test runner.
 
 Local dev-server (maintained): http://localhost:4000
 
@@ -73,8 +73,8 @@ First-hour failure modes: [`docs/troubleshooting.md`](docs/troubleshooting.md). 
 
 ## GitHub And Remotes
 
-- `origin` → `https://github.com/TokenBrice/claude-ville.git` (fetch + push, working fork).
-- `upstream` → `https://github.com/honorstudio/claude-ville.git` (fetch only).
+- `origin` → `https://github.com/noplexzone/hermes-office.git` (fetch + push, downstream fork).
+- `upstream` → `https://github.com/TokenBrice/claude-ville.git` (fetch only).
 - Do not change remotes, branches, or fork workflow unless explicitly asked.
 
 ## Git Hygiene
@@ -85,7 +85,7 @@ First-hour failure modes: [`docs/troubleshooting.md`](docs/troubleshooting.md). 
 
 ## Changelog
 
-`CHANGELOG.md` (project root) is displayed in-app when the user clicks the version chip. **Before pushing**, prepend a new entry and update the version wherever it appears.
+`CHANGELOG.md` (project root) is displayed in-app when the user clicks the version chip. Downstream development changes go under `Unreleased`; preserve the inherited upstream version until Caleb approves a stable downstream release.
 
 **Entry format:**
 

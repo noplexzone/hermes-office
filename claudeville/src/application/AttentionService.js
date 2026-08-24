@@ -7,7 +7,7 @@ import { AgentStatus } from '../domain/value-objects/AgentStatus.js';
 // it. Everything here is that: the tab title, the favicon, a cue, and a way to
 // get from "something needs you" to "I am looking at it" in one keystroke.
 
-const BASE_TITLE = 'ClaudeVille - Agent Visualization';
+const BASE_TITLE = 'Hermes Office - Agent Mission Control';
 const FAVICON_IDLE = 'favicon.svg';
 const FAVICON_ALERT = 'favicon-alert.svg';
 const DESKTOP_ALERTS_KEY = 'claudeville.alerts.desktop';
@@ -167,7 +167,7 @@ export class AttentionService {
         this._closeNotification(agentId);
         try {
             const note = new this.NotificationClass(`${agent.name} ${label}`, {
-                body: agent.projectPath || 'ClaudeVille',
+                body: agent.projectPath || 'Hermes Office',
                 tag: `claudeville-${agentId}`,
                 icon: FAVICON_ALERT,
             });

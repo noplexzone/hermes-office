@@ -1,6 +1,6 @@
 ---
-name: ClaudeVille
-description: A torchlit medieval-keep HUD wrapped around a living pixel-art village of AI coding agents.
+name: Hermes Office
+description: A torchlit command keep for watching Hermes agents work in a living pixel-art village.
 colors:
   torchlight-gold: "#f2d36b"
   gold-bright: "#ffe58d"
@@ -108,7 +108,7 @@ components:
     padding: "16px"
 ---
 
-# Design System: ClaudeVille
+# Design System: Hermes Office
 
 ## 1. Overview
 
@@ -180,7 +180,7 @@ A torchlit timber palette: warm golds and ember browns over a charred near-black
 **Character:** One chunky 8-bit pixel face does the entire job: titles, values, labels, body. There is no second typeface and there should never be one. Hierarchy comes from size, weight (the font's `bold` thickens the bitmap), letter-spacing, and color, not from pairing. The face is loaded from Google Fonts and rendered with `-webkit-font-smoothing: none` and `image-rendering: pixelated` so the glyphs stay crisp.
 
 ### Hierarchy
-- **Display** (400, 13px, line-height 1, letter-spacing 2px): the `ClaudeVille` wordmark in the top bar, with a dark drop and a gold glow.
+- **Display** (400, 13px, line-height 1, letter-spacing 2px): the `Hermes Office` wordmark in the top bar, with a dark drop and a gold glow.
 - **Headline** (700, 12px, letter-spacing 1px): dashboard section names, card names, modal title.
 - **Title** (700, 11px): tool names, token values, primary in-card labels.
 - **Body** (400, 10px, line-height 1.6): card meta, messages, tool details, modal prose.
@@ -238,7 +238,7 @@ Every interactive surface is a carved, torchlit plate. Affordances are consisten
 - **Selected row:** gold gradient wash plus a Gold-Bright 3px status spine.
 
 ### Inputs / Fields
-There are none. ClaudeVille is a read-only observatory; it has no forms, text fields, or editable controls. Do not invent input chrome; if a control is ever needed, build it as a carved plate matching the button vocabulary.
+There are none. Hermes Office v0.1 is a read-only observatory; it has no forms, text fields, or editable controls. Do not invent input chrome; if a control is ever needed, build it as a carved plate matching the button vocabulary.
 
 ### Progress Meters
 - **Quota bar (top bar) and context bar (activity panel):** a thin (6px) inset track with a square-cornered fill. Quota fill is Accent-Green, shifting to Amber Warning then Alarm Red by threshold. Context fill is a green-to-gold gradient, shifting to gold-to-amber then amber-to-red. These are *usage gauges*, not score bars; keep them functional.

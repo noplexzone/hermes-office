@@ -1,8 +1,8 @@
-# ClaudeVille Agent Notes
+# Hermes Office Agent Notes
 
 ## Scope
 
-- Work from the repo root: `/home/ahirice/Documents/git/claude-ville`.
+- Work from the repo root: `/mnt/user/appdata/dev/hermes-office`.
 - This checkout may be edited by multiple agents. Run `git status --short` before changes and do not revert or absorb unrelated edits.
 - For documentation-only tasks scoped to `README.md`, root `AGENTS.md`/`CLAUDE.md`, or `claudeville/CLAUDE.md`, edit only those files.
 - Workflow, git hygiene, and multi-agent coordination are controlled by the root `AGENTS.md`.
@@ -29,8 +29,9 @@ Invariant: client poll fallback runs at 2 s; server cache TTL is 5 s; WS heartbe
 
 ## Provider Adapters
 
-In `adapters/`, registered by `adapters/index.js`.
+In `adapters/`, registered by `adapters/index.js`. Hermes is the primary downstream provider; inherited coding-CLI providers remain available.
 
+- `hermes.js`: `~/.hermes/state.db` and `~/.hermes/profiles/*/state.db` — SQLite read-only/query-only; exposes named profiles, normalized parent links, aggregate tokens, and sanitized tool names without raw prompts, reasoning, arguments, or results.
 - `claude.js`: `~/.claude/` — `history.jsonl`, `projects/`, `teams/`, `tasks/`; subagents under `subagents/`, workflow-tool subagents under `subagents/workflows/<wfRunId>/` (tagged `agentType: 'workflow-subagent'`), orphan/team-member project JSONL files.
 - `codex.js`: `~/.codex/sessions/` — recent `rollout-*.jsonl` under `YYYY/MM/DD/`.
 - `gemini.js`: `~/.gemini/tmp/` — `tmp/<project_hash>/chats/session-*.json`; reverse-maps project hashes to local paths.

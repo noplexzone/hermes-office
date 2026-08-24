@@ -1,6 +1,6 @@
 # Support
 
-ClaudeVille is a local desktop dashboard. Start with the matching runbook before opening an issue.
+Hermes Office is a local desktop agent mission-control dashboard. Start with the matching runbook before opening an issue.
 
 | Need | Start here |
 | --- | --- |

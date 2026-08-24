@@ -29,8 +29,14 @@ const { SessionResidency } = require('./services/sessionResidency');
 const claudeAdapter = adapters.find(a => a.provider === 'claude');
 
 // ─── Settings ───────────────────────────────────────────────
-const PORT = 4000;
-const LOOPBACK_HOST = '127.0.0.1';
+const PORT = Math.max(1, Math.min(65535, Number(process.env.HERMES_OFFICE_PORT || 4000) || 4000));
+const LISTEN_HOST = process.env.HERMES_OFFICE_HOST || '127.0.0.1';
+const CONFIGURED_ALLOWED_HOSTS = new Set(
+  String(process.env.HERMES_OFFICE_ALLOWED_HOSTS || '')
+    .split(',')
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean)
+);
 const WEBSOCKET_PATH = '/ws';
 const STATIC_DIR = __dirname;
 const STATIC_ROOT = path.resolve(STATIC_DIR);
@@ -88,7 +94,7 @@ const GIT_STATE_MAX_REF_ENTRIES = 800;
 
 function localHostValues(req) {
   const port = Number(req?.socket?.localPort) || PORT;
-  return new Set([`localhost:${port}`, `127.0.0.1:${port}`]);
+  return new Set([`localhost:${port}`, `127.0.0.1:${port}`, ...CONFIGURED_ALLOWED_HOSTS]);
 }
 
 function normalizedHeader(value) {
@@ -2196,36 +2202,23 @@ server.on('upgrade', (req, socket, head) => {
 
 const ASCII_LOGO = `
 ╔══════════════════════════════════════════════════════╗
-║                                                      ║
-║    ██████╗██╗      █████╗ ██╗   ██╗██████╗ ███████╗  ║
-║   ██╔════╝██║     ██╔══██╗██║   ██║██╔══██╗██╔════╝  ║
-║   ██║     ██║     ███████║██║   ██║██║  ██║█████╗    ║
-║   ██║     ██║     ██╔══██║██║   ██║██║  ██║██╔══╝    ║
-║   ╚██████╗███████╗██║  ██║╚██████╔╝██████╔╝███████╗  ║
-║    ╚═════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝  ║
-║          ██╗   ██╗██╗██╗     ██╗     ███████╗        ║
-║          ██║   ██║██║██║     ██║     ██╔════╝        ║
-║          ╚██╗ ██╔╝██║██║     ██║     █████╗          ║
-║           ╚████╔╝ ██║██║     ██║     ██╔══╝          ║
-║            ╚██╔╝  ██║███████╗███████╗███████╗        ║
-║             ╚═╝   ╚═╝╚══════╝╚══════╝╚══════╝        ║
-║                                                      ║
-║     AI Coding Agent Visualization Dashboard          ║
-║                    by honorstudio                    ║
+║                    HERMES OFFICE                     ║
+║     Hermes-first agent mission control village      ║
+║       Downstream of ClaudeVille (MIT licensed)       ║
 ╚══════════════════════════════════════════════════════╝
 `;
 
 function startServer() {
   if (server.listening) return server;
-  server.listen(PORT, LOOPBACK_HOST, () => {
+  server.listen(PORT, LISTEN_HOST, () => {
     console.log(ASCII_LOGO);
-    console.log(`  Server running: http://localhost:${PORT}`);
+    console.log(`  Server running: http://${LISTEN_HOST}:${PORT}`);
     console.log('');
 
     const providers = getActiveProviders();
     if (providers.length === 0) {
       console.log('  [!] No active providers');
-      console.log('      One of ~/.claude/, ~/.codex/, ~/.gemini/, ~/.grok/, ~/.kimi-code/, ~/.local/share/opencode/, or ~/.omp/ is required');
+      console.log('      Hermes (~/.hermes/) or one supported coding CLI store is required');
     } else {
       console.log('  Active providers:');
       for (const p of providers) {
