@@ -202,6 +202,33 @@ test('AgentManager retains fixed-size signatures and observes nested changes onc
     assert.notEqual(digestAgentPayload(changedTail), collectionDigest);
 });
 
+test('AgentManager propagates profile and a project learned after agent creation', () => {
+    const updates = [];
+    const world = {
+        agents: new Map(),
+        addAgent(agent) { this.agents.set(agent.id, agent); },
+        updateAgent(id, data) {
+            updates.push(data);
+            this.agents.get(id).update(data);
+        },
+        removeAgent(id) { this.agents.delete(id); },
+    };
+    const manager = new AgentManager(world, null);
+    const session = {
+        sessionId: 'hermes-session', provider: 'hermes', profile: 'light',
+        model: 'gpt-5.6-sol', status: 'active', project: null,
+    };
+
+    manager._upsertAgent(session, new Map());
+    assert.equal(world.agents.get(session.sessionId).profile, 'light');
+    assert.equal(world.agents.get(session.sessionId).projectPath, null);
+
+    manager._upsertAgent({ ...session, project: '/hermes-projects/radarr' }, new Map());
+    assert.equal(updates.length, 1);
+    assert.equal(updates[0].projectPath, '/hermes-projects/radarr');
+    assert.equal(world.agents.get(session.sessionId).projectPath, '/hermes-projects/radarr');
+});
+
 test('WebSocket protocol snapshots are released on terminal disconnect', async () => {
     const previousWindow = globalThis.window;
     globalThis.window = { location: { protocol: 'http:', host: 'localhost:4000' } };

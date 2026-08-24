@@ -40,6 +40,7 @@ export class Agent {
         sendMessages,
         provider,
         agentId,
+        profile,
         agentName,
         agentType,
         parentSessionId,
@@ -57,6 +58,7 @@ export class Agent {
         this._customName = !!name; // Whether the name was assigned by a team
         this.name = name || this.generateName();
         this.agentId = agentId || null;
+        this.profile = profile || null;
         this.agentName = agentName || name || null;
         this.agentType = agentType || null;
         this.parentSessionId = parentSessionId || null;

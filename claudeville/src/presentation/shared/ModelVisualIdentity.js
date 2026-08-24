@@ -72,6 +72,33 @@ const CODEX_GPT55_SPRITE_BY_EFFORT = Object.freeze({
     xhigh: 'agent.codex.gpt55.xhigh',
 });
 
+const HERMES_PROFILE_VISUALS = Object.freeze({
+    jarvis: Object.freeze({
+        spriteId: 'agent.codex.gpt56sol',
+        equipment: 'dawnblade',
+        effortWeapon: 'dawnblade',
+        trim: ['#ffd76a', '#ffedb3', '#7be3d7'],
+        accent: ['#fff6d8', '#ffd76a', '#bff7ee'],
+        minimapColor: '#ffd76a',
+    }),
+    light: Object.freeze({
+        spriteId: 'agent.codex.gpt56luna',
+        equipment: 'crescentSaber',
+        effortWeapon: 'crescentSaber',
+        trim: ['#cfe4ff', '#9db8d9', '#7be3d7'],
+        accent: ['#f0f7ff', '#cfe4ff', '#bff7ee'],
+        minimapColor: '#cfe4ff',
+    }),
+    l: Object.freeze({
+        spriteId: 'agent.codex.gpt56terra',
+        equipment: 'earthbreaker',
+        effortWeapon: 'earthbreaker',
+        trim: ['#d9a066', '#9fce6e', '#7be3d7'],
+        accent: ['#f0c896', '#c8e8a0', '#bff7ee'],
+        minimapColor: '#d9a066',
+    }),
+});
+
 const DEFAULT_EFFORT_RENDERING = Object.freeze({
     effortBakedIntoSprite: false,
     showDashboardEffortCrest: true,
@@ -180,7 +207,7 @@ export function contextWindowLimitForModel(model, provider = '') {
     return CONTEXT_WINDOW_LIMITS.default;
 }
 
-export function getModelVisualIdentity(model, effort, provider = '') {
+function getBaseModelVisualIdentity(model, effort, provider = '') {
     const normalizedModel = normalizeModel(model);
     const normalizedProvider = String(provider || '').toLowerCase();
     const effortTier = normalizeReasoningEffort(effort);
@@ -484,6 +511,13 @@ export function getModelVisualIdentity(model, effort, provider = '') {
         accent: null,
         minimapColor: null,
     };
+}
+
+export function getModelVisualIdentity(model, effort, provider = '', profile = '') {
+    const identity = getBaseModelVisualIdentity(model, effort, provider);
+    if (String(provider || '').toLowerCase() !== 'hermes') return identity;
+    const profileVisual = HERMES_PROFILE_VISUALS[String(profile || '').trim().toLowerCase()];
+    return profileVisual ? { ...identity, ...profileVisual } : identity;
 }
 
 export function formatModelLabel(model, effort, provider = '') {

@@ -84,6 +84,7 @@ function normalizeSession(session, context = {}) {
     sessionId: String(session?.sessionId || ''),
     provider,
     agentId: session?.agentId ?? null,
+    profile: session?.profile ?? null,
     agentType: session?.agentType || 'main',
     agentName: session?.agentName ?? session?.name ?? null,
     project: session?.project ?? null,
@@ -122,6 +123,7 @@ function normalizeDetail(detail, context = {}) {
     tokenUsage: value.tokenUsage ?? value.tokens ?? value.usage ?? null,
     gitEvents: Array.isArray(value.gitEvents) ? value.gitEvents : [],
     agentName: value.agentName ?? value.name ?? null,
+    profile: value.profile ?? null,
   };
 }
 

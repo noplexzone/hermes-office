@@ -7,6 +7,8 @@
 - Forked ClaudeVille as Hermes Office while retaining its MIT license, attribution, pixel village, dashboard, and existing provider adapters.
 - Added a privacy-safe, read-only Hermes Agent adapter that discovers named profile session databases, normalizes sessions and parent relationships, aggregates token usage, and exposes sanitized tool names without prompts, reasoning, tool arguments, or tool results.
 - Added deterministic SQLite fixture coverage for profile discovery, active-session filtering, parent mapping, malformed optional JSON, token aggregation, watch paths, and source-database integrity.
+- Added stable profile-specific World and Dashboard characters for Jarvis, Light, and L using the existing Sol, Luna, and Terra sprite families without changing their reported model.
+- Added conservative project inference from bounded Hermes gateway origin display metadata, with authoritative git/cwd precedence, parent inheritance, and no raw origin or title exposure.
 
 ---
 

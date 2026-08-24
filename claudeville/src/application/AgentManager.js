@@ -6,6 +6,7 @@ import { eventBus } from '../domain/events/DomainEvent.js';
 const AGENT_SIGNATURE_FIELDS = Object.freeze([
     'id',
     'agentId',
+    'profile',
     'agentName',
     'agentType',
     'parentSessionId',
@@ -274,7 +275,7 @@ export class AgentManager {
                 return;
             }
             this._agentSignatures.set(id, signature);
-            const { id: _id, projectPath: _projectPath, provider: _provider, lastMessage: _lastMessage, ...agentData } = payload;
+            const { id: _id, provider: _provider, lastMessage: _lastMessage, ...agentData } = payload;
             this.world.updateAgent(id, agentData);
         } else {
             this._agentSignatures.set(id, signature);
@@ -319,6 +320,7 @@ export class AgentManager {
         return {
             id,
             agentId: session.agentId || null,
+            profile: session.profile || null,
             agentName,
             agentType: session.agentType || null,
             parentSessionId: session.parentSessionId || null,

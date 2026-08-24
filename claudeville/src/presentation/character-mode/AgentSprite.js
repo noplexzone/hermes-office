@@ -2191,7 +2191,7 @@ export class AgentSprite {
             return;
         }
 
-        const identity = getModelVisualIdentity(this.agent.model, this.agent.effort, this.agent.provider);
+        const identity = getModelVisualIdentity(this.agent.model, this.agent.effort, this.agent.provider, this.agent.profile);
         const provider = this._providerKey();
         const variant = this._hashVariant();
         const spriteId = identity.spriteId || `agent.${provider}.base`;
@@ -4865,7 +4865,7 @@ export class AgentSprite {
         const slot = this.overlaySlot ?? this.nameTagSlot ?? 0;
         const providerKey = this._providerKey();
         const providerColor = PROVIDER_BADGE_COLORS[providerKey] || PROVIDER_BADGE_COLORS.default;
-        const identity = getModelVisualIdentity(this.agent?.model, this.agent?.effort, this.agent?.provider);
+        const identity = getModelVisualIdentity(this.agent?.model, this.agent?.effort, this.agent?.provider, this.agent?.profile);
         const tierColor = MODEL_TIER_COLORS[identity?.modelTier] || MODEL_TIER_COLORS.balanced;
 
         ctx.save();
@@ -6036,7 +6036,7 @@ export class AgentSprite {
     }
 
     _providerTrimColor(agent = this.agent) {
-        const identity = getModelVisualIdentity(agent?.model, agent?.effort, agent?.provider);
+        const identity = getModelVisualIdentity(agent?.model, agent?.effort, agent?.provider, agent?.profile);
         return identity.trim?.[0] || PROVIDER_TRIM[this._providerKey(agent)] || PROVIDER_TRIM.default;
     }
 
@@ -6122,7 +6122,7 @@ export class AgentSprite {
 
 function providerMoteColor(agent) {
     const provider = String(agent?.provider || '').toLowerCase();
-    const identity = getModelVisualIdentity(agent?.model, agent?.effort, agent?.provider);
+    const identity = getModelVisualIdentity(agent?.model, agent?.effort, agent?.provider, agent?.profile);
     if (identity.trim?.[0]) return identity.trim[0];
     return PROVIDER_TRIM[provider] || PROVIDER_TRIM.default;
 }
@@ -6140,7 +6140,7 @@ const FAMILIAR_MOTE_SHAPES = Object.freeze({
 });
 
 function providerMoteShape(agent) {
-    const identity = getModelVisualIdentity(agent?.model, agent?.effort, agent?.provider);
+    const identity = getModelVisualIdentity(agent?.model, agent?.effort, agent?.provider, agent?.profile);
     if (identity.family && FAMILIAR_MOTE_SHAPES[identity.family]) {
         return FAMILIAR_MOTE_SHAPES[identity.family];
     }

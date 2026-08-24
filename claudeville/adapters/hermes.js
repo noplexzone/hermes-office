@@ -16,6 +16,13 @@ const DETAIL_TOOL_LIMIT = 15;
 const QUERY_CHUNK_SIZE = 200;
 const HIDDEN_TOOL_DETAIL = 'Tool call details hidden';
 const CUSTOM_TOOL_NAME = 'custom_tool';
+const ORIGIN_JSON_LIMIT = 2048;
+const ORIGIN_TEXT_LIMIT = 512;
+const PROJECT_SLUG_MAX = 64;
+const PROJECT_STOPWORDS = new Set([
+  'active', 'branch', 'current', 'develop', 'development', 'feature', 'general',
+  'new', 'project', 'repo', 'repository', 'session', 'the', 'unknown', 'work',
+]);
 const SAFE_TOOL_NAMES = new Set([
   'browser_exec', 'clarify', 'cronjob', 'delegate_task', 'execute_code',
   'memory', 'patch', 'process', 'read_file', 'search_files', 'skill_manage',
@@ -109,6 +116,54 @@ function sanitizeToolName(value) {
   return SAFE_TOOL_NAMES.has(name) ? name : CUSTOM_TOOL_NAME;
 }
 
+function safeProjectSlug(value) {
+  const slug = String(value || '').trim().toLowerCase();
+  if (slug.length < 2 || slug.length > PROJECT_SLUG_MAX) return null;
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(slug) || PROJECT_STOPWORDS.has(slug)) return null;
+  return slug;
+}
+
+function inferProjectFromOrigin(rawOrigin) {
+  const origin = parseJson(String(rawOrigin || '').slice(0, ORIGIN_JSON_LIMIT), null);
+  if (!origin || typeof origin !== 'object' || Array.isArray(origin)) return null;
+  const candidates = ['auto_thread_initial_name', 'chat_topic', 'chat_name']
+    .map(key => origin[key])
+    .filter(value => typeof value === 'string')
+    .map(value => value.slice(0, ORIGIN_TEXT_LIMIT));
+  const patterns = [
+    /\b(?:work(?:ing)?|develop(?:ing)?|build(?:ing)?|implement(?:ing)?)\s+(?:on|in|for)\s+(?:(?:our|the|a|an)\s+)?([a-z0-9][a-z0-9._-]{1,63})\s+(?:branch|project|repo(?:sitory)?)\b/i,
+    /\b(?:project|repo(?:sitory)?)\s*[:=-]?\s*([a-z0-9][a-z0-9._-]{1,63})\b/i,
+    /\b([a-z0-9][a-z0-9._-]{1,63})\s+(?:branch|project|repo(?:sitory)?)\b/i,
+  ];
+  for (const candidate of candidates) {
+    for (const pattern of patterns) {
+      const slug = safeProjectSlug(candidate.match(pattern)?.[1]);
+      if (slug) return `/hermes-projects/${slug}`;
+    }
+  }
+  return null;
+}
+
+function directProjectForRow(row) {
+  return row?.git_repo_root || row?.cwd || inferProjectFromOrigin(row?.origin_json) || null;
+}
+
+function projectResolver(rows) {
+  const rowBySession = new Map(rows.map(row => [String(row.id || ''), row]));
+  const projectBySession = new Map(rows.map(row => [String(row.id || ''), directProjectForRow(row)]));
+  const resolve = (rawSessionId, seen = new Set()) => {
+    if (!rawSessionId || seen.has(rawSessionId)) return null;
+    if (projectBySession.get(rawSessionId)) return projectBySession.get(rawSessionId);
+    const row = rowBySession.get(rawSessionId);
+    if (!row?.parent_session_id) return null;
+    seen.add(rawSessionId);
+    const inherited = resolve(String(row.parent_session_id), seen);
+    if (inherited) projectBySession.set(rawSessionId, inherited);
+    return inherited;
+  };
+  return resolve;
+}
+
 function toolNamesFromEnvelope(rawToolCalls, fallbackToolName = null) {
   const parsed = parseJson(rawToolCalls, null);
   const values = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === 'object' ? [parsed] : []);
@@ -156,6 +211,9 @@ function sessionSelection(columns) {
     selectedColumn(columns, 'archived', '0'),
     selectedColumn(columns, 'hidden', '0'),
     selectedColumn(columns, 'last_activity_at', '0'),
+    columns.has('origin_json')
+      ? `substr(s."origin_json", 1, ${ORIGIN_JSON_LIMIT}) AS "origin_json"`
+      : 'NULL AS "origin_json"',
   ].join(', ');
 }
 
@@ -298,6 +356,37 @@ function recentSessionRows(db, sessionColumns, candidateIds = []) {
   return rows;
 }
 
+function parentRowsForActiveSessions(db, sessionColumns, knownRows, activeRows) {
+  if (!sessionColumns.has('id') || !sessionColumns.has('parent_session_id')) return [];
+  const selected = sessionSelection(sessionColumns);
+  const known = new Map(knownRows.map(row => [String(row.id || ''), row]));
+  const fetched = [];
+  let pending = activeRows.map(row => String(row.parent_session_id || '')).filter(Boolean);
+  for (let depth = 0; depth < 8 && pending.length && fetched.length < RECENT_SESSION_LIMIT; depth++) {
+    const remaining = RECENT_SESSION_LIMIT - fetched.length;
+    const ids = [...new Set(pending)].filter(id => !known.has(id)).slice(0, remaining);
+    if (!ids.length) break;
+    const next = [];
+    for (const batch of chunked(ids)) {
+      const placeholders = batch.map(() => '?').join(',');
+      try {
+        const rows = db.prepare(`SELECT ${selected} FROM sessions s WHERE s.id IN (${placeholders})`).all(...batch);
+        for (const row of rows) {
+          const id = String(row.id || '');
+          if (!id || known.has(id)) continue;
+          known.set(id, row);
+          fetched.push(row);
+          if (row.parent_session_id) next.push(String(row.parent_session_id));
+        }
+      } catch {
+        return fetched;
+      }
+    }
+    pending = next;
+  }
+  return fetched;
+}
+
 function usageBySession(db, usageColumns, sessionIds) {
   const result = new Map();
   if (!usageColumns.has('session_id') || !sessionIds.length) return result;
@@ -429,6 +518,8 @@ class HermesAdapter {
         const activeIds = activeRows.map(row => String(row.id));
         const latestTools = latestToolsBySession(db, messageColumns, activeIds);
         const usage = usageBySession(db, usageColumns, activeIds);
+        const projectRows = [...rows, ...parentRowsForActiveSessions(db, sessionColumns, rows, activeRows)];
+        const resolveProject = projectResolver(projectRows);
         for (const row of activeRows) {
           const profile = String(source.profile || 'default');
           const rawSessionId = String(row.id || '');
@@ -439,9 +530,10 @@ class HermesAdapter {
             sessionId: normalizedSessionId(profile, rawSessionId),
             provider: 'hermes',
             agentId: profile,
+            profile,
             agentType: row.parent_session_id ? 'sub-agent' : 'main',
             agentName: profileLabel(profile),
-            project: row.git_repo_root || row.cwd || null,
+            project: resolveProject(rawSessionId) || null,
             model: row.model || 'hermes',
             status: 'active',
             lastActivity,
@@ -487,14 +579,16 @@ class HermesAdapter {
       if (!row) return this._emptyDetail(sessionId, project);
       const usageColumns = tableColumns(db, 'session_model_usage');
       const aggregate = usageBySession(db, usageColumns, [parsed.rawSessionId]).get(parsed.rawSessionId);
+      const projectRows = [row, ...parentRowsForActiveSessions(db, sessionColumns, [row], [row])];
       return {
         provider: 'hermes',
         sessionId,
-        project: row.git_repo_root || row.cwd || project || '',
+        project: projectResolver(projectRows)(parsed.rawSessionId) || project || '',
         toolHistory: toolHistoryForSession(db, parsed.rawSessionId, tableColumns(db, 'messages')),
         messages: [],
         tokenUsage: normalizedUsage(row, aggregate),
         agentName: profileLabel(parsed.profile),
+        profile: parsed.profile,
       };
     } finally {
       try { db.close(); } catch { /* ignore */ }
@@ -504,7 +598,7 @@ class HermesAdapter {
   _emptyDetail(sessionId, project) {
     return {
       provider: 'hermes', sessionId: String(sessionId || ''), project: project || '',
-      toolHistory: [], messages: [], tokenUsage: null, agentName: null,
+      toolHistory: [], messages: [], tokenUsage: null, agentName: null, profile: null,
     };
   }
 

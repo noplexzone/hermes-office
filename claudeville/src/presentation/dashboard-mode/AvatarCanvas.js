@@ -90,7 +90,7 @@ export class AvatarCanvas {
         const w = this.canvas.width;
         const h = this.canvas.height;
         const app = this.agent.appearance;
-        const identity = getModelVisualIdentity(this.agent.model, this.agent.effort, this.agent.provider);
+        const identity = getModelVisualIdentity(this.agent.model, this.agent.effort, this.agent.provider, this.agent.profile);
         const trim = identity.trim?.[0] || app.shirt;
         const accent = identity.accent?.[0] || app.skin;
 
@@ -686,7 +686,7 @@ export class AvatarCanvas {
      * accent, escalating with reasoning effort tier. Falls back to gold.
      */
     auraColor() {
-        const identity = getModelVisualIdentity(this.agent.model, this.agent.effort, this.agent.provider);
+        const identity = getModelVisualIdentity(this.agent.model, this.agent.effort, this.agent.provider, this.agent.profile);
         const accent = identity.accent || [];
         const byTier = { low: 0, medium: 0, high: 1, xhigh: 2, max: 2, ultra: 2 };
         const idx = byTier[identity.effortTier] ?? 0;

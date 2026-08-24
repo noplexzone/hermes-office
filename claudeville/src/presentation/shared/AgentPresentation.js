@@ -130,7 +130,7 @@ export function statusPresentation(status, translator = i18n) {
 }
 
 export function modelPresentation(agent) {
-    const identity = getModelVisualIdentity(agent?.model, agent?.effort, agent?.provider);
+    const identity = getModelVisualIdentity(agent?.model, agent?.effort, agent?.provider, agent?.profile);
     return {
         identity,
         label: agent?.model ? formatModelLabel(agent.model, agent.effort, agent.provider) : '',
