@@ -2,7 +2,7 @@ import { TILE_WIDTH, TILE_HEIGHT, MAP_SIZE } from '../../config/constants.js';
 import { THEME, WORLD_BODY_FONT } from '../../config/theme.js';
 import { drawPixelFlame, fillPixelEllipse, fillTileDiamond } from './PixelShapes.js';
 import { normalizeBuildingType } from '../../config/buildings.js';
-import { mergeWorldThemeTable } from '../../config/worldThemes.js';
+import { getWorldVisualPackage, mergeWorldThemeTable } from '../../config/worldThemes.js';
 import { PORTAL_SPAWN_TILE, TOWN_ROAD_ROUTES, VILLAGE_GATE, VILLAGE_GATE_BOUNDS, VILLAGE_WALL_ROUTES } from '../../config/townPlan.js';
 import {
     AMBIENT_GROUND_PROPS,
@@ -436,6 +436,7 @@ export class IsometricRenderer {
     constructor(world, options = {}) {
         this.world = world;
         this.theme = options.theme || null;
+        this.worldVisuals = getWorldVisualPackage(this.theme);
         this.waterTokens = mergeWorldThemeTable(WATER_TOKENS, this.theme?.world?.waterTokens);
         this.multiplyGrade = mergeWorldThemeTable(MULTIPLY_GRADE, this.theme?.world?.multiplyGrade);
         this.assets = options.assets || null;
@@ -4989,7 +4990,8 @@ export class IsometricRenderer {
         // per frame. Stored for _drawGroundDecals / _drawTile to branch on.
         const season = this._currentSeasonToken();
         this._terrainSeason = season;
-        const key = `${bounds.x},${bounds.y},${bounds.w},${bounds.h}@${dpr}|${this.assets ? 'assets' : 'fallback'}|edge|atmo-persp|season:${season}`;
+        const visualRevision = this.worldVisuals.terrain?.revision ? `|theme:${this.worldVisuals.terrain.revision}` : '';
+        const key = `${bounds.x},${bounds.y},${bounds.w},${bounds.h}@${dpr}|${this.assets ? 'assets' : 'fallback'}|edge|atmo-persp|season:${season}${visualRevision}`;
         if (this.terrainCache && this.terrainCacheKey === key) {
             return { canvas: this.terrainCache, bounds };
         }
@@ -5027,6 +5029,7 @@ export class IsometricRenderer {
             this._drawStaticOpenSeaStructure(ctx, 0, MAP_SIZE - 1, 0, MAP_SIZE - 1);
             this._drawOpenSeaBasinGradient(ctx);
             this._drawDistrictAtmosphere(ctx);
+            this._drawThemeTerrainMotifs(ctx);
             this._drawRiverContourLines(ctx, 0, MAP_SIZE - 1, 0, MAP_SIZE - 1);
             this._drawWaterFoamLines(ctx, 0, MAP_SIZE - 1, 0, MAP_SIZE - 1);
             this._drawOpenSeaSurfBreaks(ctx, 0, MAP_SIZE - 1, 0, MAP_SIZE - 1);
@@ -5058,13 +5061,14 @@ export class IsometricRenderer {
         ctx.clip();
         ctx.globalCompositeOperation = 'multiply';
         const haze = ctx.createLinearGradient(0, topY, 0, bottomY);
-        // Cool, high-value haze tint — multiply leaves near rows untouched (white→1x)
-        // and gently desaturates/cools the far rows toward atmospheric distance.
-        haze.addColorStop(0, 'rgb(196, 214, 232)');
-        haze.addColorStop(0.5, 'rgb(232, 240, 248)');
-        haze.addColorStop(1, 'rgb(255, 255, 255)');
+        // A package may exchange the village's cool distance haze for another
+        // restrained palette. Null visuals preserve the original stops exactly.
+        const perspective = this.worldVisuals.atmosphere?.perspective;
+        haze.addColorStop(0, perspective?.far || 'rgb(196, 214, 232)');
+        haze.addColorStop(0.5, perspective?.middle || 'rgb(232, 240, 248)');
+        haze.addColorStop(1, perspective?.near || 'rgb(255, 255, 255)');
         ctx.fillStyle = haze;
-        ctx.globalAlpha = 0.5;          // peak ~8% effective cool wash at the far apex
+        ctx.globalAlpha = perspective?.alpha ?? 0.5; // package-independent readable depth
         ctx.fillRect(points[3].x, topY, points[1].x - points[3].x, bottomY - topY);
         ctx.restore();
     }
@@ -8305,9 +8309,16 @@ export class IsometricRenderer {
         const points = this._worldDiamondPoints();
         ctx.save();
         const sideGradient = ctx.createLinearGradient(0, points[0].y, 0, points[2].y + 44);
-        sideGradient.addColorStop(0, 'rgba(87, 62, 31, 0.10)');
-        sideGradient.addColorStop(0.55, 'rgba(44, 28, 16, 0.34)');
-        sideGradient.addColorStop(1, 'rgba(13, 9, 7, 0.62)');
+        const rim = this.worldVisuals.terrain?.rim;
+        if (rim) {
+            sideGradient.addColorStop(0, this._withAlpha(rim.shelf, 0.24));
+            sideGradient.addColorStop(0.55, this._withAlpha(rim.face, 0.68));
+            sideGradient.addColorStop(1, this._withAlpha(rim.face, 0.94));
+        } else {
+            sideGradient.addColorStop(0, 'rgba(87, 62, 31, 0.10)');
+            sideGradient.addColorStop(0.55, 'rgba(44, 28, 16, 0.34)');
+            sideGradient.addColorStop(1, 'rgba(13, 9, 7, 0.62)');
+        }
         ctx.fillStyle = sideGradient;
         ctx.beginPath();
         ctx.moveTo(points[1].x, points[1].y);
@@ -8325,7 +8336,7 @@ export class IsometricRenderer {
         ctx.fill();
 
         ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(238, 191, 94, 0.24)';
+        ctx.strokeStyle = rim ? this._withAlpha(rim.edge, 0.72) : 'rgba(238, 191, 94, 0.24)';
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
         for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
@@ -8418,13 +8429,14 @@ export class IsometricRenderer {
         const rightX = points[1].x + 1400;
 
         const phase = atmosphere?.phase || 'day';
-        const deep = phase === 'night'
+        const packagedWater = this.worldVisuals.atmosphere?.distantWater?.[phase];
+        const deep = packagedWater || (phase === 'night'
             ? { shallow: '#1a3a5e', deep: '#0a1c34' }
             : phase === 'dusk'
                 ? { shallow: '#6a6390', deep: '#3b3860' }
                 : phase === 'dawn'
                     ? { shallow: '#6f8fb8', deep: '#445e8a' }
-                    : { shallow: '#5aa0c8', deep: '#2f6e9b' };
+                    : { shallow: '#5aa0c8', deep: '#2f6e9b' });
         const horizon = atmosphere?.sky?.palette?.horizon || '#8fb9cf';
 
         ctx.save();
@@ -8522,9 +8534,16 @@ export class IsometricRenderer {
     _drawDioramaBackdrop(ctx) {
         const points = this._worldDiamondPoints();
         const gradient = ctx.createLinearGradient(0, points[0].y - 80, 0, points[2].y + 120);
-        gradient.addColorStop(0, 'rgba(33, 58, 59, 0.16)');
-        gradient.addColorStop(0.42, 'rgba(77, 52, 26, 0.08)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.34)');
+        const backdrop = this.worldVisuals.terrain?.backdrop;
+        if (backdrop) {
+            gradient.addColorStop(0, this._withAlpha(backdrop.far, 0.46));
+            gradient.addColorStop(0.42, this._withAlpha(backdrop.middle, 0.32));
+            gradient.addColorStop(1, this._withAlpha(backdrop.near, 0.72));
+        } else {
+            gradient.addColorStop(0, 'rgba(33, 58, 59, 0.16)');
+            gradient.addColorStop(0.42, 'rgba(77, 52, 26, 0.08)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.34)');
+        }
         ctx.save();
         ctx.translate(0, 12);
         ctx.fillStyle = gradient;
@@ -8572,6 +8591,46 @@ export class IsometricRenderer {
             ctx.lineTo(points[3].x + inset * 0.7, points[3].y + inset * 0.34);
             ctx.closePath();
             ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    _drawThemeTerrainMotifs(ctx) {
+        const motifs = this.worldVisuals.atmosphere?.motifs;
+        if (!Array.isArray(motifs) || motifs.length === 0) return;
+        ctx.save();
+        for (const motif of motifs) {
+            const spacing = Math.max(2, Math.floor(Number(motif.spacing) || 6));
+            ctx.globalAlpha = Math.max(0, Math.min(0.5, Number(motif.alpha) || 0));
+            ctx.strokeStyle = motif.color;
+            ctx.fillStyle = motif.color;
+            ctx.lineWidth = 1;
+            if (motif.kind === 'ledger-lines') {
+                // Iso rulings cross the archive like immense indexed leaves. They
+                // are visual ink only: no collision, path, or hit-test data moves.
+                for (let tile = spacing; tile < MAP_SIZE; tile += spacing) {
+                    const a = tileToWorld(tile, 0);
+                    const b = tileToWorld(tile, MAP_SIZE - 1);
+                    const c = tileToWorld(0, tile);
+                    const d = tileToWorld(MAP_SIZE - 1, tile);
+                    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.stroke();
+                }
+            } else if (motif.kind === 'folio-marks') {
+                for (let y = spacing; y < MAP_SIZE; y += spacing) {
+                    for (let x = (y / spacing) % 2 ? spacing * 2 : spacing; x < MAP_SIZE; x += spacing * 2) {
+                        const key = `${x},${y}`;
+                        if (this._isVisualWaterTile(x, y, key) || this.pathTiles.has(key)) continue;
+                        const p = tileToWorld(x, y);
+                        ctx.fillRect(Math.round(p.x - 5), Math.round(p.y - 6), 9, 5);
+                        ctx.save();
+                        ctx.globalAlpha *= 0.35;
+                        ctx.fillStyle = this.worldVisuals.terrain?.ground?.forest || '#101610';
+                        ctx.fillRect(Math.round(p.x - 3), Math.round(p.y - 5), 5, 1);
+                        ctx.restore();
+                    }
+                }
+            }
         }
         ctx.restore();
     }
@@ -8926,6 +8985,7 @@ export class IsometricRenderer {
         let fill = null;
         let alpha = 0;
         const visualWater = this._isVisualWaterTile(tileX, tileY, key);
+        const terrain = this.worldVisuals.terrain;
 
         const isLagoon = this._isLagoonWaterTile(tileX, tileY, key);
         const waterToken = visualWater ? this._waterTokenAt(tileX, tileY, key) : null;
@@ -8940,7 +9000,7 @@ export class IsometricRenderer {
                 // between the two deep tones on a low-frequency field, so depth
                 // reads as coherent patches instead of alternating diamonds.
                 const drift = this._smoothNoise(tileX + 31, tileY + 47, 5);
-                fill = this._lerpColor(waterToken.deep, openSea ? '#03244a' : '#0b6c8d', drift * 0.85);
+                fill = this._lerpColor(waterToken.deep, terrain?.water?.deepBlend || (openSea ? '#03244a' : '#0b6c8d'), drift * 0.85);
                 alpha = openSea ? 0.58 : 0.48;
             }
         } else if (visualWater) {
@@ -8954,32 +9014,36 @@ export class IsometricRenderer {
             // 2.2 — sandy bed: the tile of water right at the waterline warms
             // toward the shore sand so shallows read as wading depth.
             const shoreDistance = this._waterMetaAt(tileX, tileY, key)?.shoreDistance;
-            if (shoreDistance === 0) fill = this._lerpColor(fill, '#c9a35e', 0.30);
+            if (shoreDistance === 0) fill = this._lerpColor(fill, terrain?.water?.shoreBed || '#c9a35e', terrain ? 0.46 : 0.30);
             alpha = this.waterTiles.has(key) ? 0.42 : 0.54;
         } else if (this.shoreTiles.has(key)) {
-            fill = seed > 0.45 ? '#c29a55' : '#ad8346';
-            alpha = 0.15;
+            fill = terrain ? (seed > 0.45 ? terrain.shore.accent : terrain.shore.base) : (seed > 0.45 ? '#c29a55' : '#ad8346');
+            alpha = terrain ? 0.76 : 0.15;
         } else if (this.townSquareTiles.has(key)) {
-            fill = '#2d2219';
-            alpha = 0.09;
+            fill = terrain?.plaza?.base || '#2d2219';
+            alpha = terrain ? 0.72 : 0.09;
         } else if (this.mainAvenueTiles?.has(key)) {
-            fill = '#3a2a18';
-            alpha = 0.07;
+            fill = terrain?.path?.base || '#3a2a18';
+            alpha = terrain ? 0.68 : 0.07;
         } else if (this.pathTiles.has(key) || this.dirtPathTiles?.has(key)) {
-            fill = '#2f2818';
-            alpha = 0.055;
+            fill = terrain?.path?.dark || '#2f2818';
+            alpha = terrain ? 0.64 : 0.055;
         } else {
             const forestFloor = this._forestFloorAt(tileX, tileY);
             if (forestFloor) {
                 const mix = this._tileNoise(tileX + 709, tileY + 431);
-                fill = mix > 0.56 ? forestFloor.accent : forestFloor.base;
-                alpha = 0.18 + forestFloor.strength * 0.20;
+                fill = terrain
+                    ? (mix > 0.56 ? terrain.ground.grassDark : terrain.ground.forest)
+                    : (mix > 0.56 ? forestFloor.accent : forestFloor.base);
+                alpha = terrain ? 0.82 : 0.18 + forestFloor.strength * 0.20;
             } else {
                 // Broad grass greens drift in coherent masses on the low-frequency
                 // field (2.1) instead of flipping per 5x5 hash cell.
                 const broad = this._smoothNoise(tileX + 97, tileY + 131, 7);
-                fill = broad > 0.66 ? '#537339' : broad < 0.30 ? '#6d8742' : '#5d7c3c';
-                alpha = 0.11;
+                fill = terrain
+                    ? (broad > 0.66 ? terrain.ground.grassLight : broad < 0.30 ? terrain.ground.grassDark : terrain.ground.grassMid)
+                    : (broad > 0.66 ? '#537339' : broad < 0.30 ? '#6d8742' : '#5d7c3c');
+                alpha = terrain ? 0.78 : 0.11;
             }
         }
 

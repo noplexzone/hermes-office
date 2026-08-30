@@ -161,7 +161,7 @@ function recordForTerrain(renderer) {
 function recordForBuilding(renderer, drawable, sequence) {
     const assets = renderer?.assets;
     const id = drawable?.entry?.id;
-    const source = assets?.get?.(id);
+    const source = renderer?.buildingRenderer?.getThemedBuildingSource?.(drawable) || assets?.get?.(id);
     if (!source || !id) return null;
     const dims = assets.getDims(id) || { w: source.width, h: source.height };
     const [ax, ay] = assets.getAnchor(id) || [dims.w / 2, dims.h];
@@ -181,7 +181,9 @@ function recordForBuilding(renderer, drawable, sequence) {
     return {
         id: `${id}:${drawable.kind}`,
         stableKey: `${id}:${drawable.kind}`,
-        textureKey: id,
+        textureKey: renderer?.buildingRenderer?.landmarkTreatment?.revision
+            ? `${id}:${renderer.buildingRenderer.landmarkTreatment.revision}`
+            : id,
         sidecarKey: `${id}:material`,
         source,
         materialSource,
@@ -204,7 +206,7 @@ function recordForBuilding(renderer, drawable, sequence) {
             ? (active ? finite(materialMeta.activeEmissive, 0.12) : finite(materialMeta.emissive, 0.03))
             : 0,
         occluder: finite(materialMeta.occluder, 0.86),
-        textureRevision: assets.assetVersion || null,
+        textureRevision: renderer?.buildingRenderer?.landmarkTreatment?.revision || assets.assetVersion || null,
         sidecarRevision: `${assets.assetVersion || ''}:${id}`,
         sequence,
     };

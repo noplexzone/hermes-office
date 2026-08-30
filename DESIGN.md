@@ -23,6 +23,10 @@ colors:
   status-waiting-user: "#facc15"
   accent-purple: "#c084fc"
   accent-green: "#72d071"
+  index-ledger-green: "#172318"
+  index-folio-brass: "#b8aa70"
+  index-parchment-bone: "#ddd0a5"
+  index-highlight: "#d8cca1"
 typography:
   display:
     fontFamily: "'Press Start 2P', monospace"
@@ -147,6 +151,10 @@ A torchlit timber palette: warm golds and ember browns over a charred near-black
 ### Secondary
 - **Harbor Teal** (#7ac8d8): the canvas world's accent (water, harbor, Pharos). In DOM it appears rarely; it is mostly a world-layer color.
 - **Sky Soft** (#7eb7d6): model badges and user/info message accents. The one cool-warm bridge that reads as "information," distinct from gold authority.
+
+### Infinite Index package palette
+
+The Infinite Index is deliberately colder and more archival than the Keep. Its canvas package uses **Ledger Green** (#172318) to bind the inherited village sprites into the archive, **Folio Brass** (#b8aa70) for sparse catalog lines, **Parchment Bone** (#ddd0a5) for folio marks, and **Index Highlight** (#d8cca1) for low-alpha landmark relief. These are world-package materials, not status colors: they may texture terrain, water, atmosphere, and landmark ornaments, but must not replace or compete with canonical agent status hues.
 
 ### Neutral
 - **Charred Timber** (#08070b): the body background. Near-black with the faintest warmth; the unlit interior.

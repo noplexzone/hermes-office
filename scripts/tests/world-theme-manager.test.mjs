@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { BUILDING_DEFS } from '../../claudeville/src/config/buildings.js';
-import { DEFAULT_WORLD_THEME_ID, WORLD_THEMES, applyWorldThemeProfileOverride, getThemedBuildingDefs, getWorldTheme, getWorldThemeAssetManifestPaths, isThemeCssVariableAllowed, isWorldThemeId, listWorldThemes, mergeWorldThemeTable, resolveStoredWorldTheme, setActiveWorldTheme } from '../../claudeville/src/config/worldThemes.js';
+import { DEFAULT_WORLD_THEME_ID, WORLD_THEMES, applyWorldThemeProfileOverride, getThemedBuildingDefs, getWorldTheme, getWorldThemeAssetManifestPaths, getWorldVisualPackage, isThemeCssVariableAllowed, isWorldThemeId, listWorldThemes, mergeWorldThemeTable, resolveStoredWorldTheme, setActiveWorldTheme } from '../../claudeville/src/config/worldThemes.js';
 import { WORLD_THEME_STORAGE_KEY, WorldThemeManager } from '../../claudeville/src/application/WorldThemeManager.js';
 import { loadWorldThemeAssets } from '../../claudeville/src/application/WorldThemeAssetLoader.js';
 import { getModelVisualIdentity } from '../../claudeville/src/presentation/shared/ModelVisualIdentity.js';
@@ -74,6 +74,44 @@ test('partial renderer palettes merge against every canonical region and phase',
   assert.deepEqual(merged.day, { base: 'archive-day', edge: 'edge', edgeAlpha: 0.2 });
   assert.deepEqual(merged.night, base.night);
   assert.strictEqual(mergeWorldThemeTable(base, null), base);
+});
+
+test('generic visual package exposes terrain, atmosphere, and nine landmark treatments', () => {
+  const keep = getWorldVisualPackage(getWorldTheme(DEFAULT_WORLD_THEME_ID));
+  assert.deepEqual(keep, { terrain: null, atmosphere: null, landmarks: null });
+
+  const visuals = getWorldVisualPackage(getWorldTheme('infinite-index'));
+  assert.deepEqual(Object.keys(visuals).sort(), ['atmosphere', 'landmarks', 'terrain']);
+  assert.deepEqual(Object.keys(visuals.terrain.ground).sort(), ['forest', 'grassDark', 'grassLight', 'grassMid']);
+  assert.match(visuals.terrain.ground.grassDark, /^#[0-9a-f]{6}$/i);
+  assert.match(visuals.terrain.shore.base, /^#[0-9a-f]{6}$/i);
+  assert.match(visuals.terrain.path.base, /^#[0-9a-f]{6}$/i);
+  assert.ok(visuals.atmosphere.motifs.length >= 2);
+  assert.ok(visuals.atmosphere.motifs.every(motif => motif.kind && motif.color && Number.isFinite(motif.spacing)));
+  assert.match(visuals.landmarks.frame.outer, /^#[0-9a-f]{6}$/i);
+  assert.match(visuals.landmarks.frame.inner, /^#[0-9a-f]{6}$/i);
+  assert.deepEqual(
+    Object.keys(visuals.landmarks.ornaments).sort(),
+    BUILDING_DEFS.map(({ type }) => type).sort(),
+  );
+  assert.ok(Object.values(visuals.landmarks.ornaments).every(ornament => ornament.kind && ornament.position));
+});
+
+test('partial terrain visual packages fail closed to the default renderer', () => {
+  const visuals = getWorldVisualPackage({ world: { terrain: { revision: 'partial' } } });
+  assert.equal(visuals.terrain, null);
+});
+
+test('renderer visual treatment remains package-driven instead of branching on theme IDs', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const rendererSources = await Promise.all([
+    '../../claudeville/src/presentation/character-mode/IsometricRenderer.js',
+    '../../claudeville/src/presentation/character-mode/BuildingSprite.js',
+    '../../claudeville/src/presentation/character-mode/gpu/GpuSceneBuilder.js',
+  ].map(path => readFile(new URL(path, import.meta.url), 'utf8')));
+  for (const source of rendererSources) {
+    assert.doesNotMatch(source, /infinite-index|keep-at-night/);
+  }
 });
 
 test('manifest candidates are ordered, deduplicated, and fall back to the default package', () => {

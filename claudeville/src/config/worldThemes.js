@@ -64,6 +64,45 @@ const INFINITE_INDEX = {
             dusk: { base: 'rgb(177, 171, 119)', edge: 'rgb(91, 100, 62)', edgeAlpha: 0.46 },
             dawn: { base: 'rgb(195, 190, 143)', edge: 'rgb(106, 113, 74)', edgeAlpha: 0.42 },
         },
+        terrain: {
+            revision: 'archive-visuals-v1',
+            ground: { grassDark: '#101b12', grassMid: '#24331e', grassLight: '#3d4928', forest: '#08110a' },
+            shore: { base: '#c5b98f', accent: '#e0d4aa' },
+            path: { base: '#93855b', dark: '#554e34', line: '#d7ca9d' },
+            plaza: { base: '#81764f', dark: '#403b29' },
+            water: { deepBlend: '#07110c', shoreBed: '#b9ab7b' },
+            backdrop: { far: '#07100a', middle: '#182218', near: '#020604' },
+            rim: { face: '#172016', edge: '#8f8147', shelf: '#cabe91' },
+        },
+        atmosphere: {
+            perspective: { far: '#9ca376', middle: '#d4cfaa', near: '#ffffff', alpha: 0.58 },
+            distantWater: {
+                day: { shallow: '#3d5130', deep: '#0b1710' },
+                night: { shallow: '#1d2b20', deep: '#050b07' },
+                dusk: { shallow: '#4b4d2c', deep: '#151b11' },
+                dawn: { shallow: '#59613d', deep: '#1c2818' },
+            },
+            motifs: [
+                { kind: 'ledger-lines', color: '#b8aa70', spacing: 6, alpha: 0.20 },
+                { kind: 'folio-marks', color: '#ddd0a5', spacing: 7, alpha: 0.30 },
+            ],
+        },
+        landmarks: {
+            revision: 'archive-landmarks-v1',
+            tint: { color: '#172318', alpha: 0.34, highlight: '#d8cca1', highlightAlpha: 0.10 },
+            frame: { outer: '#756a37', inner: '#d5c793', shadow: '#070c08', plate: '#202719' },
+            ornaments: {
+                command: { kind: 'index-crown', position: 'crown' },
+                taskboard: { kind: 'ledger-tabs', position: 'lintel' },
+                archive: { kind: 'stack-spines', position: 'crown' },
+                mine: { kind: 'well-rings', position: 'lintel' },
+                forge: { kind: 'quill-nib', position: 'crown' },
+                harbor: { kind: 'ink-drop', position: 'lintel' },
+                watchtower: { kind: 'vigil-eye', position: 'crown' },
+                observatory: { kind: 'orrery', position: 'crown' },
+                portal: { kind: 'codex-seal', position: 'lintel' },
+            },
+        },
     },
     buildings: {
         command: { label: 'THE GREAT INDEX', shortLabel: 'INDEX' },
@@ -136,6 +175,34 @@ export function getThemedBuildingDefs(baseDefs, theme) {
 
 export function isThemeCssVariableAllowed(name) {
     return String(name || '').startsWith('--') && !String(name).startsWith('--cv-status-');
+}
+
+const TERRAIN_VISUAL_FIELDS = Object.freeze([
+    ['ground', ['grassDark', 'grassMid', 'grassLight', 'forest']],
+    ['shore', ['base', 'accent']],
+    ['path', ['base', 'dark', 'line']],
+    ['plaza', ['base', 'dark']],
+    ['water', ['deepBlend', 'shoreBed']],
+    ['backdrop', ['far', 'middle', 'near']],
+    ['rim', ['face', 'edge', 'shelf']],
+]);
+
+function isCompleteTerrainVisualPackage(terrain) {
+    if (!terrain || typeof terrain !== 'object' || typeof terrain.revision !== 'string') return false;
+    return TERRAIN_VISUAL_FIELDS.every(([section, fields]) => {
+        const values = terrain[section];
+        return values && typeof values === 'object'
+            && fields.every((field) => typeof values[field] === 'string' && values[field].trim());
+    });
+}
+
+export function getWorldVisualPackage(theme = activeWorldTheme) {
+    const world = theme?.world || {};
+    return {
+        terrain: isCompleteTerrainVisualPackage(world.terrain) ? world.terrain : null,
+        atmosphere: world.atmosphere || null,
+        landmarks: world.landmarks || null,
+    };
 }
 
 export function mergeWorldThemeTable(baseTable, overrideTable) {

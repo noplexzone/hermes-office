@@ -236,6 +236,8 @@ export class BuildingSprite {
         this.sprites = spriteRenderer;
         this.particles = particleSystem;
         this.theme = theme;
+        this.landmarkTreatment = theme?.world?.landmarks || null;
+        this._themedBuildingSources = new Map();
         this.labelShortText = { ...LABEL_SHORT_TEXT, ...Object.fromEntries(Object.entries(theme?.buildings || {}).map(([type, value]) => [type, value.shortLabel])) };
         this.buildings = [];
         this.agentSprites = [];
@@ -305,6 +307,8 @@ export class BuildingSprite {
     }
 
     dispose() {
+        for (const canvas of this._themedBuildingSources.values()) { canvas.width = 0; canvas.height = 0; }
+        this._themedBuildingSources.clear();
         this._motionMq?.removeEventListener?.('change', this._onMotionChange);
         eventBus.off(BUILDING_EVENTS.ACTIVE_AGENTS, this._onPresence);
         eventBus.off('building:read-intensity', this._onReadIntensity);
@@ -1571,15 +1575,23 @@ export class BuildingSprite {
 
     drawDrawable(ctx, d) {
         const id = d.entry.id;
+        const themedSource = this.getThemedBuildingSource(d);
         if (d.kind === 'building') {
-            this.sprites.drawSprite(ctx, id, d.wx, d.wy);
+            if (themedSource) {
+                const dims = this.assets.getDims(id);
+                const [ax, ay] = this.assets.getAnchor(id);
+                ctx.drawImage(themedSource, Math.round(d.wx - ax), Math.round(d.wy - ay), dims.w, dims.h);
+            } else {
+                // Keep at Night takes the original call path byte-for-byte.
+                this.sprites.drawSprite(ctx, id, d.wx, d.wy);
+            }
             this._drawAnimatedOverlays(ctx, d.entry, d.wx, d.wy, d.building, 'whole');
         } else {
             const dims = this.assets.getDims(id);
             const [ax, ay] = this.assets.getAnchor(id);
             const dx = Math.round(d.wx - ax);
             const dy = Math.round(d.wy - ay);
-            const img = this.assets.get(id);
+            const img = themedSource || this.assets.get(id);
             if (!img) return;
             if (d.kind === 'building-back') {
                 ctx.drawImage(img, 0, 0, dims.w, d.horizonY, dx, dy, dims.w, d.horizonY);
@@ -1591,6 +1603,107 @@ export class BuildingSprite {
             }
         }
         if (this.hovered === d.building) this.sprites.drawOutline(ctx, id, d.wx, d.wy);
+    }
+
+    // Returns null for an unthemed package so the default renderer keeps its
+    // exact source and draw calls. A configured package receives a cached,
+    // same-size procedural treatment; anchors, occlusion horizons, and hit masks
+    // therefore remain untouched in both Canvas and GPU paths.
+    getThemedBuildingSource(drawable) {
+        const treatment = this.landmarkTreatment;
+        const building = drawable?.building;
+        const ornament = treatment?.ornaments?.[building?.type];
+        if (!treatment || !ornament || typeof document === 'undefined') return null;
+        const id = drawable.entry.id;
+        const key = `${treatment.revision || 'visual'}:${id}`;
+        if (this._themedBuildingSources.has(key)) return this._themedBuildingSources.get(key);
+        const source = this.assets.get(id);
+        const dims = this.assets.getDims(id);
+        if (!source || !dims?.w || !dims?.h) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = dims.w;
+        canvas.height = dims.h;
+        const ctx = canvas.getContext('2d', { alpha: true });
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(source, 0, 0, dims.w, dims.h);
+        this._drawPackageLandmarkTreatment(ctx, dims, treatment, ornament);
+        this._themedBuildingSources.set(key, canvas);
+        return canvas;
+    }
+
+    _drawPackageLandmarkTreatment(ctx, dims, treatment, ornament) {
+        const tint = treatment.tint;
+        if (tint?.color && tint.alpha > 0) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-atop';
+            ctx.globalAlpha = clamp01(tint.alpha);
+            ctx.fillStyle = tint.color;
+            ctx.fillRect(0, 0, dims.w, dims.h);
+            if (tint.highlight && tint.highlightAlpha > 0) {
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.globalAlpha = clamp01(tint.highlightAlpha);
+                ctx.fillStyle = tint.highlight;
+                ctx.fillRect(0, 0, dims.w, dims.h);
+            }
+            ctx.restore();
+        }
+
+        const frame = treatment.frame || {};
+        const inset = Math.max(4, Math.min(9, Math.floor(Math.min(dims.w, dims.h) * 0.035)));
+        const arm = Math.max(12, Math.min(28, Math.floor(dims.w * 0.14)));
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.lineCap = 'square';
+        ctx.lineJoin = 'miter';
+        ctx.strokeStyle = frame.shadow || '#000000';
+        ctx.lineWidth = 5;
+        this._strokeLandmarkCornerBrackets(ctx, dims, inset + 1, arm);
+        ctx.strokeStyle = frame.outer || '#817347';
+        ctx.lineWidth = 3;
+        this._strokeLandmarkCornerBrackets(ctx, dims, inset, arm);
+        ctx.strokeStyle = frame.inner || '#d1c49a';
+        ctx.lineWidth = 1;
+        this._strokeLandmarkCornerBrackets(ctx, dims, inset, arm);
+
+        const cx = Math.round(dims.w / 2);
+        const cy = ornament.position === 'lintel'
+            ? Math.max(12, Math.round(dims.h * 0.31))
+            : Math.max(10, inset + 7);
+        ctx.fillStyle = frame.shadow || '#000000';
+        ctx.fillRect(cx - 19, cy - 8, 38, 17);
+        ctx.fillStyle = frame.plate || '#202719';
+        ctx.fillRect(cx - 17, cy - 7, 34, 14);
+        ctx.strokeStyle = frame.outer || '#817347';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx - 17, cy - 7, 34, 14);
+        this._drawHashedLandmarkSigil(ctx, String(ornament.kind || 'mark'), cx, cy, frame.inner || '#d1c49a');
+        ctx.restore();
+    }
+
+    _strokeLandmarkCornerBrackets(ctx, dims, inset, arm) {
+        const left = inset;
+        const right = dims.w - inset;
+        const top = inset;
+        const bottom = dims.h - inset;
+        for (const [x, y, sx, sy] of [[left, top, 1, 1], [right, top, -1, 1], [left, bottom, 1, -1], [right, bottom, -1, -1]]) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + sy * arm);
+            ctx.lineTo(x, y);
+            ctx.lineTo(x + sx * arm, y);
+            ctx.stroke();
+        }
+    }
+
+    _drawHashedLandmarkSigil(ctx, kind, cx, cy, color) {
+        let hash = hashText(kind) || 1;
+        ctx.fillStyle = color;
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 5; col++) {
+                hash = (hash * 1103515245 + 12345) >>> 0;
+                if ((hash >>> 29) & 1) ctx.fillRect(cx - 7 + col * 3, cy - 4 + row * 3, 2, 2);
+            }
+        }
+        ctx.fillRect(cx - 1, cy - 5, 2, 11);
     }
 
     _drawAnimatedOverlays(ctx, entry, wx, wy, building = null, splitPass = 'whole', horizonY = null) {

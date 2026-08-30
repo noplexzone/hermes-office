@@ -5,7 +5,7 @@
 ## Unreleased
 
 - Added selectable World theme packages with persisted, failure-safe selection and a controlled reload before world, assets, and renderer boot.
-- Added The Infinite Index first-pass identity with original archive terminology, distinct black-green/parchment/olive/brass chrome and water palette, and all nine landmark labels while retaining current sprites as documented fallback.
+- Added The Infinite Index as a materially distinct archive world: black-green/olive terrain and water, parchment paths and folio marks, bone distance haze, tarnished-brass world trim, and procedural indexed frames and unique sigils on all nine landmarks while retaining the established sprite silhouettes, geometry, hitboxes, and canonical agent status colors.
 
 - Forked ClaudeVille as Hermes Office while retaining its MIT license, attribution, pixel village, dashboard, and existing provider adapters.
 - Added a privacy-safe, read-only Hermes Agent adapter that discovers named profile session databases, normalizes sessions and parent relationships, aggregates token usage, and exposes sanitized tool names without prompts, reasoning, tool arguments, or tool results.
