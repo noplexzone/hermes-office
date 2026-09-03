@@ -74,6 +74,10 @@ const INFINITE_INDEX = {
             backdrop: { far: '#07100a', middle: '#182218', near: '#020604' },
             rim: { face: '#172016', edge: '#8f8147', shelf: '#cabe91' },
         },
+        scenery: {
+            useFantasyTrees: false,
+            villageEnclosure: false,
+        },
         atmosphere: {
             perspective: { far: '#9ca376', middle: '#d4cfaa', near: '#ffffff', alpha: 0.58 },
             distantWater: {
@@ -116,11 +120,9 @@ const INFINITE_INDEX = {
         portal: { label: 'THE SEALED CODEX', shortLabel: 'CODEX' },
     },
     atmosphere: { place: 'Index' },
-    assets: { manifestPath: 'assets/sprites/manifest.yaml', fallbackThemeId: DEFAULT_WORLD_THEME_ID },
+    assets: { manifestPath: 'local-assets/infinite-index/manifest.yaml', fallbackThemeId: DEFAULT_WORLD_THEME_ID },
     profileOverrides: {
-        jarvis: { spriteId: 'agent.codex.gpt56sol', equipment: 'dawnblade', effortWeapon: 'dawnblade', trim: ['#d8c98f', '#f0dfaa', '#89a867'], accent: ['#f5e8bd', '#c7b568', '#9bb67a'], minimapColor: '#d8c98f' },
-        light: { spriteId: 'agent.codex.gpt56luna', equipment: 'crescentSaber', effortWeapon: 'crescentSaber', trim: ['#d9e4e0', '#a6bfd0', '#8fae78'], accent: ['#f1f6ef', '#c8dbe4', '#a3bd8b'], minimapColor: '#c8dbe4' },
-        l: { spriteId: 'agent.codex.gpt56terra', equipment: 'earthbreaker', effortWeapon: 'earthbreaker', trim: ['#b88b57', '#879b56', '#7f9964'], accent: ['#d7b27d', '#a8b875', '#94ad75'], minimapColor: '#b88b57' },
+        jarvis: { spriteId: 'agent.codex.gpt56sol', allowRuntimeEffortWeapon: false, trim: ['#d8c98f', '#f0dfaa', '#89a867'], accent: ['#f5e8bd', '#c7b568', '#9bb67a'], minimapColor: '#d8c98f' },
     },
 };
 
@@ -135,7 +137,7 @@ let activeWorldTheme = WORLD_THEMES[DEFAULT_WORLD_THEME_ID];
 
 const PROFILE_PRESENTATION_KEYS = new Set([
     'spriteId', 'paletteKey', 'trim', 'accent', 'minimapColor', 'equipment',
-    'effortWeapon', 'suppressBakedWeapon', 'effortAccessory', 'effortFloorRing',
+    'effortWeapon', 'allowRuntimeEffortWeapon', 'suppressBakedWeapon', 'effortAccessory', 'effortFloorRing',
 ]);
 
 export function isWorldThemeId(id) {

@@ -7,7 +7,7 @@
 [![Local first](https://img.shields.io/badge/local--first-read--only-0f766e)](#local-and-read-only)
 [![Providers](https://img.shields.io/badge/providers-8-f97316)](#supported-providers)
 
-Watch Jarvis, Light, L, delegated workers, and local coding agents work in a living pixel village.
+Watch Jarvis, delegated workers, and local coding agents work in a living pixel village.
 
 Hermes Office is a Hermes-first mission-control fork of ClaudeVille. It reads Hermes profile databases and supported coding-CLI session stores read-only, normalizes them into one session model, and renders active agents as either an isometric RPG village or a dense monitoring dashboard.
 
@@ -24,7 +24,7 @@ Hermes Office is maintained at `noplexzone/hermes-office` as a downstream fork o
 
 ## Why Hermes Office
 
-Hermes Office turns invisible multi-agent project work into a place Caleb can leave open. Jarvis, Light, L, and temporary workers move through the village according to real activity, while Dashboard mode keeps exact provider, model, project, token, tool, status, and session detail available when needed.
+Hermes Office turns invisible multi-agent project work into a place Caleb can leave open. Jarvis and temporary workers move through the village according to real activity, while Dashboard mode keeps exact provider, model, project, token, tool, status, and session detail available when needed.
 
 The app is intentionally small: a zero-dependency Node.js HTTP/WebSocket server, static browser assets, vanilla ES modules, and Canvas 2D rendering.
 
@@ -75,7 +75,9 @@ HERMES_OFFICE_ALLOWED_HOSTS=tower.local:4000 \
 docker compose up -d
 ```
 
-Use the exact browser `host:port` in `HERMES_OFFICE_ALLOWED_HOSTS`; comma-separate multiple values. The application never accepts a wildcard trusted host. Set `HERMES_OFFICE_PROFILES=jarvis,light,l` (the Compose default) to scan only the named agents that belong in this office; omit it to discover every profile.
+Use the exact browser `host:port` in `HERMES_OFFICE_ALLOWED_HOSTS`; comma-separate multiple values. The application never accepts a wildcard trusted host. Set `HERMES_OFFICE_PROFILES=jarvis` (the Compose default) to scan only the named agents that belong in this office; omit it to discover every profile.
+
+For private local theme packs, set `HERMES_OFFICE_LOCAL_ASSET_ROOT` to an existing absolute directory. The server exposes that directory read-only at `/local-assets/` while retaining real-path containment checks; leave the variable unset to disable the mount. Container deployments must additionally mount the host directory into the container and set the variable to that in-container path.
 
 Runtime is dependency-free: `npm run dev` uses only Node built-ins and static browser files. The repo also has a `package-lock.json` and dev dependencies for sprite validation, visual diffs, and Playwright-based capture scripts; run `npm install` only when those development scripts are needed.
 

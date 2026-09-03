@@ -4,13 +4,14 @@
 
 ## Unreleased
 
+- Added an optional, path-contained `/local-assets/` mount for private theme packs kept outside the public repository, with automatic fallback to the bundled sprite manifest when no local pack is configured.
 - Added selectable World theme packages with persisted, failure-safe selection and a controlled reload before world, assets, and renderer boot.
-- Added The Infinite Index as a materially distinct archive world: black-green/olive terrain and water, parchment paths and folio marks, bone distance haze, tarnished-brass world trim, and procedural indexed frames and unique sigils on all nine landmarks while retaining the established sprite silhouettes, geometry, hitboxes, and canonical agent status colors.
+- Added The Infinite Index as a materially distinct archive world: black-green/olive terrain and water, parchment paths and folio marks, bone distance haze, tarnished-brass world trim, generic scenery controls, and optional private-manifest art while preserving geometry, hitboxes, bundled fallback behavior, and canonical agent status colors.
 
 - Forked ClaudeVille as Hermes Office while retaining its MIT license, attribution, pixel village, dashboard, and existing provider adapters.
 - Added a privacy-safe, read-only Hermes Agent adapter that discovers named profile session databases, normalizes sessions and parent relationships, aggregates token usage, and exposes sanitized tool names without prompts, reasoning, tool arguments, or tool results.
 - Added deterministic SQLite fixture coverage for profile discovery, active-session filtering, parent mapping, malformed optional JSON, token aggregation, watch paths, and source-database integrity.
-- Added stable profile-specific World and Dashboard characters for Jarvis, Light, and L using the existing Sol, Luna, and Terra sprite families without changing their reported model.
+- Added a stable profile-specific World and Dashboard character for Jarvis using the existing Sol sprite family without changing the reported model.
 - Added conservative project inference from bounded Hermes gateway origin display metadata, with authoritative git/cwd precedence, parent inheritance, and no raw origin or title exposure.
 
 ---

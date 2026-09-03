@@ -117,7 +117,10 @@ test('renderer visual treatment remains package-driven instead of branching on t
 test('manifest candidates are ordered, deduplicated, and fall back to the default package', () => {
   const custom = { id: 'custom', assets: { manifestPath: 'assets/custom.yaml', fallbackThemeId: DEFAULT_WORLD_THEME_ID } };
   assert.deepEqual(getWorldThemeAssetManifestPaths(custom), ['assets/custom.yaml', 'assets/sprites/manifest.yaml']);
-  assert.deepEqual(getWorldThemeAssetManifestPaths(getWorldTheme('infinite-index')), ['assets/sprites/manifest.yaml']);
+  assert.deepEqual(getWorldThemeAssetManifestPaths(getWorldTheme('infinite-index')), [
+    'local-assets/infinite-index/manifest.yaml',
+    'assets/sprites/manifest.yaml',
+  ]);
 });
 
 test('asset loading disposes a failed primary manager and returns the fallback manager', async () => {
@@ -166,6 +169,7 @@ test('profile overrides alter presentation only and are consumed by model identi
     const identity = getModelVisualIdentity('gpt-5.6-sol', 'high', 'hermes', 'Jarvis');
     assert.equal(identity.spriteId, 'agent.codex.gpt56sol');
     assert.deepEqual(identity.trim, ['#d8c98f', '#f0dfaa', '#89a867']);
+    assert.equal(identity.allowRuntimeEffortWeapon, false);
   } finally {
     setActiveWorldTheme(getWorldTheme(DEFAULT_WORLD_THEME_ID));
   }

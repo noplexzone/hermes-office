@@ -8,7 +8,7 @@ Each immutable registry entry contains:
 
 - `id`, `name`, and `description` for selection and accessible copy;
 - `chrome`, a map of CSS custom properties applied at boot;
-- `world`, generic renderer data: region-specific `waterTokens`, phase `multiplyGrade`, semantic `terrain` palettes, procedural `atmosphere.motifs`, and `landmarks` tint/frame/ornament treatments;
+- `world`, generic renderer data: region-specific `waterTokens`, phase `multiplyGrade`, optional `scenery` policy, semantic `terrain` palettes, procedural `atmosphere.motifs`, and `landmarks` tint/frame/ornament treatments;
 - `buildings`, semantic `label` and `shortLabel` overrides keyed by stable building type;
 - `atmosphere.place`, the accessible name used by the live World summary;
 - `assets.manifestPath` plus `fallbackThemeId`, resolved as a cycle-safe fallback chain;
@@ -22,12 +22,14 @@ The World controls popover contains a native keyboard-accessible selector. Selec
 
 ## Assets and procedural world treatment
 
-A package may point at another compatible sprite manifest. Manifest candidates follow `fallbackThemeId`; failed managers are disposed before the next candidate loads. The Infinite Index deliberately reuses the established village sprite silhouettes, then applies generic package-driven procedural rendering rather than shipping duplicate binary art:
+A package may point at another compatible sprite manifest. Manifest candidates follow `fallbackThemeId`; failed managers are disposed before the next candidate loads. The Infinite Index first tries `local-assets/infinite-index/manifest.yaml`, then falls back to the bundled sprite manifest when no private pack is mounted. Set `HERMES_OFFICE_LOCAL_ASSET_ROOT` to an existing absolute directory to expose that directory read-only at `/local-assets/`; the server validates the opened file against the configured real root before reading it.
+
+Regardless of which compatible manifest loads, the package applies generic rendering treatments:
 
 - strong black-green and olive ground masses, parchment paths, bone shores, near-black water depth, and tarnished-brass edge tones;
 - phase-aware archive water and distance haze plus immense ledger rulings and scattered folio marks baked into the terrain cache;
-- a same-size tinted landmark composite with tarnished-brass corner frames, bone sigils, and one package-specified ornament key for each of the nine stable building types.
+- same-size landmark composites with tarnished-brass corner frames, bone sigils, and one package-specified ornament key for each stable building type.
 
-The composites preserve every source dimension, anchor, split-occlusion horizon, hit mask, world position, and pathing footprint. Both Canvas and GPU scene builders consume the same decorated source. A package with null visual fields—including Keep at Night—takes the original renderer paths and values, so the default remains pixel-for-pixel unchanged. Jarvis/Sol, Light/Luna, and L/Terra retain their existing sheets, tools, silhouettes, model labels, and provider/status semantics. Theme visual colors never replace the canonical status ramp.
+The treatment preserves source dimensions, anchors, split-occlusion horizons, hit masks, world positions, and pathing footprints. Both Canvas and GPU scene builders consume the same themed sources. A package with null visual fields—including Keep at Night—takes the original renderer paths and values, so the default remains pixel-for-pixel unchanged. Jarvis retains his model label and provider/status semantics; the private manifest may replace presentation art only. Theme visual colors never replace the canonical status ramp.
 
 Only original or properly licensed theme names, terminology, motifs, and assets may ship. Do not copy another game's names, symbols, characters, or art direction-specific assets.

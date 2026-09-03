@@ -42,6 +42,8 @@ const STATIC_DIR = __dirname;
 const STATIC_ROOT = path.resolve(STATIC_DIR);
 const realpathSync = fs.realpathSync.native || fs.realpathSync;
 const STATIC_REAL_ROOT = realpathSync(STATIC_ROOT);
+const LOCAL_ASSET_URL_PREFIX = '/local-assets/';
+const LOCAL_ASSET_REAL_ROOT = resolveLocalAssetRoot(process.env.HERMES_OFFICE_LOCAL_ASSET_ROOT);
 const ACTIVE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 // Sessions that stopped on a question, a permission prompt, or a finished turn
 // are held past the active window so the village still shows them.
@@ -57,6 +59,8 @@ const MIME_TYPES = {
   '.js': 'application/javascript; charset=utf-8',
   '.mjs': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.yaml': 'text/yaml; charset=utf-8',
+  '.yml': 'text/yaml; charset=utf-8',
   '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
@@ -191,6 +195,23 @@ function isContainedPath(root, candidate) {
 
 function realpathExistingPath(filePath) {
   return realpathSync(filePath);
+}
+
+function resolveLocalAssetRoot(value) {
+  const configured = String(value || '').trim();
+  if (!configured || !path.isAbsolute(configured)) return null;
+  try {
+    const resolved = realpathExistingPath(configured);
+    return fs.statSync(resolved).isDirectory() ? resolved : null;
+  } catch {
+    return null;
+  }
+}
+
+function localAssetRelativePath(pathname) {
+  if (!String(pathname || '').startsWith(LOCAL_ASSET_URL_PREFIX)) return null;
+  const relative = String(pathname).slice(LOCAL_ASSET_URL_PREFIX.length);
+  return relative ? relative : null;
 }
 
 function formatAge(ms) {
@@ -488,6 +509,53 @@ function handleGetChangelog(req, res) {
 
 // ─── Static file serving ─────────────────────────────────────
 
+function containedReadErrorStatus(error) {
+  if (['EACCES', 'EPERM', 'ELOOP', 'ESTALE'].includes(error?.code)) return 403;
+  if (['ENOENT', 'ENOTDIR'].includes(error?.code)) return 404;
+  return 500;
+}
+
+function readContainedFile(filePath, realRoot, callback) {
+  const flags = fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0);
+  fs.open(filePath, flags, (openError, fd) => {
+    if (openError) return callback(openError);
+    let finished = false;
+    const finish = (error, data = null, resolvedPath = null) => {
+      if (finished) return;
+      finished = true;
+      fs.close(fd, closeError => callback(error || closeError, data, resolvedPath));
+    };
+    fs.fstat(fd, (descriptorError, descriptorStat) => {
+      if (descriptorError) return finish(descriptorError);
+      if (!descriptorStat.isFile()) {
+        const error = new Error('Not a regular file');
+        error.code = 'EACCES';
+        return finish(error);
+      }
+      let resolvedPath;
+      try {
+        resolvedPath = realpathExistingPath(filePath);
+      } catch (error) {
+        return finish(error);
+      }
+      if (!isContainedPath(realRoot, resolvedPath)) {
+        const error = new Error('Resolved path escapes configured root');
+        error.code = 'EACCES';
+        return finish(error);
+      }
+      fs.stat(resolvedPath, (pathError, pathStat) => {
+        if (pathError) return finish(pathError);
+        if (pathStat.dev !== descriptorStat.dev || pathStat.ino !== descriptorStat.ino) {
+          const error = new Error('Path changed while opening file');
+          error.code = 'ESTALE';
+          return finish(error);
+        }
+        fs.readFile(fd, (readError, data) => finish(readError, data, resolvedPath));
+      });
+    });
+  });
+}
+
 function serveContainedFile(req, res, parsedUrl, { root, realRoot, label = 'Static' }) {
   if (process.env.DEBUG_STATIC) {
     console.log(`[${label}] request`, req.url);
@@ -523,40 +591,26 @@ function serveContainedFile(req, res, parsedUrl, { root, realRoot, label = 'Stat
       }
     }
 
-    const realFilePath = realpathExistingPath(filePath);
-    if (!isContainedPath(realRoot, realFilePath)) {
-      return sendError(res, 403, 'Forbidden');
-    }
-    filePath = realFilePath;
-
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    const isText = contentType.includes('text') ||
-                   contentType.includes('javascript') ||
-                   contentType.includes('json') ||
-                   contentType.includes('svg');
 
-    if (process.env.DEBUG_STATIC) {
-      console.log(`[${label}] resolved`, filePath, 'type', contentType);
-    }
-
-    fs.readFile(filePath, isText ? 'utf-8' : undefined, (err, data) => {
+    readContainedFile(filePath, realRoot, (err, data, resolvedPath) => {
       if (process.env.DEBUG_STATIC) {
         console.log(`[${label}] read callback for`, filePath, 'err?', Boolean(err));
       }
       if (err) {
-        console.error('File read error:', err.message);
-        return sendError(res, 500, 'Internal Server Error');
+        const statusCode = containedReadErrorStatus(err);
+        if (statusCode === 500) console.error('File read error:', err.message);
+        return sendError(res, statusCode, statusCode === 403 ? 'Forbidden' : statusCode === 404 ? 'Not Found' : 'Internal Server Error');
       }
 
       if (process.env.DEBUG_STATIC) {
-        const byteLength = Buffer.isBuffer(data) ? data.length : String(data).length;
-        console.log(`[${label}] serving`, filePath, 'bytes', byteLength, 'type', contentType);
+        console.log(`[${label}] serving`, resolvedPath, 'bytes', data.length, 'type', contentType);
       }
 
       res.writeHead(200, {
         'Content-Type': contentType,
-        'Cache-Control': cacheControlFor(parsedUrl, filePath),
+        'Cache-Control': cacheControlFor(parsedUrl, resolvedPath),
       });
       res.end(data);
     });
@@ -573,6 +627,18 @@ function handleStaticFile(req, res, parsedUrl) {
     root: STATIC_ROOT,
     realRoot: STATIC_REAL_ROOT,
     label: 'Static',
+  });
+}
+
+function handleLocalAssetFile(req, res, parsedUrl) {
+  const relativePath = localAssetRelativePath(parsedUrl.pathname);
+  if (!LOCAL_ASSET_REAL_ROOT || !relativePath) return sendError(res, 404, 'Not Found');
+  const localUrl = new URL(parsedUrl);
+  localUrl.pathname = `/${relativePath}`;
+  return serveContainedFile(req, res, localUrl, {
+    root: LOCAL_ASSET_REAL_ROOT,
+    realRoot: LOCAL_ASSET_REAL_ROOT,
+    label: 'Local asset',
   });
 }
 
@@ -2186,6 +2252,9 @@ const server = http.createServer((req, res) => {
   if (routeHandler) {
     return routeHandler(req, res, parsedUrl);
   }
+  if (pathname.startsWith(LOCAL_ASSET_URL_PREFIX)) {
+    return handleLocalAssetFile(req, res, parsedUrl);
+  }
 
   handleStaticFile(req, res, parsedUrl);
 });
@@ -2340,6 +2409,10 @@ if (require.main === module) {
 module.exports = {
   startServer,
   shutdownRuntime,
+  _staticTest: {
+    localAssetRelativePath,
+    resolveLocalAssetRoot,
+  },
   _watcherTest: {
     cacheControlFor,
     canonicalizeWatchDescriptors,

@@ -6,7 +6,8 @@ services:
       HERMES_OFFICE_HERMES_ROOT: /hermes
       HERMES_OFFICE_HOST: 0.0.0.0
       HERMES_OFFICE_PORT: 4000
-      HERMES_OFFICE_PROFILES: ${HERMES_OFFICE_PROFILES:-jarvis,light,l}
+      HERMES_OFFICE_PROFILES: ${HERMES_OFFICE_PROFILES:-jarvis}
+      HERMES_OFFICE_LOCAL_ASSET_ROOT: ${HERMES_OFFICE_LOCAL_ASSET_ROOT:-}
       # Add the exact LAN host:port used in the browser, e.g. tower.local:4000.
       HERMES_OFFICE_ALLOWED_HOSTS: ${HERMES_OFFICE_ALLOWED_HOSTS:-}
     ports:

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { BuildingSprite } from '../../claudeville/src/presentation/character-mode/BuildingSprite.js';
+import { IsometricRenderer } from '../../claudeville/src/presentation/character-mode/IsometricRenderer.js';
 import { buildGpuWorldRecords } from '../../claudeville/src/presentation/character-mode/gpu/GpuSceneBuilder.js';
 import { GpuWorldRenderer } from '../../claudeville/src/presentation/character-mode/gpu/GpuWorldRenderer.js';
 import { DEFAULT_WORLD_THEME_ID, getWorldTheme } from '../../claudeville/src/config/worldThemes.js';
@@ -341,4 +342,28 @@ test('GpuWorldRenderer.render uploads and draws the Infinite Index themed split 
     buildingRenderer.dispose();
     globalThis.document = previousDocument;
   }
+});
+
+
+test('theme scenery policy replaces authored fantasy trees and can omit the village enclosure', () => {
+  const infinite = getWorldTheme('infinite-index');
+  const renderer = Object.create(IsometricRenderer.prototype);
+  renderer.theme = infinite;
+  assert.equal(renderer._useFantasyTreeRenderer({ tropical: true }), false);
+  assert.equal(renderer._useFantasyTreeRenderer({ canopy: true }), false);
+
+  renderer.sprites = {};
+  renderer._buildVillageWallSprites = () => { throw new Error('village wall must be omitted'); };
+  renderer._buildVillageWallTerminalSprites = () => { throw new Error('wall terminals must be omitted'); };
+  renderer._buildWatchtowerBeaconBuoySprites = () => [];
+  renderer.scenery = { isBlockedForTallScenery: () => true };
+  renderer.pathTiles = new Set();
+  renderer.bridgeTiles = new Set();
+  assert.deepEqual(renderer._buildDistrictPropSprites(), []);
+
+  renderer.theme = getWorldTheme(DEFAULT_WORLD_THEME_ID);
+  renderer._buildVillageWallSprites = () => ['wall'];
+  renderer._buildVillageWallTerminalSprites = () => ['terminal'];
+  assert.equal(renderer._useFantasyTreeRenderer({ tropical: true }), true);
+  assert.equal(renderer._buildDistrictPropSprites().length, 3);
 });

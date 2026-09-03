@@ -734,7 +734,7 @@ export class IsometricRenderer {
             // tile coordinates + variant so the visual offset is stable across
             // reloads but each tree drifts on its own phase.
             const swaySeed = this._windSwaySeed(t);
-            if (t.canopy || t.tropical) {
+            if (this._useFantasyTreeRenderer(t)) {
                 const bounds = this._fantasyTreePropBounds(t);
                 return new StaticPropSprite({
                     tileX: t.tileX,
@@ -822,6 +822,11 @@ export class IsometricRenderer {
         // Event subscriptions
         this._unsubscribers = [];
         this.debugOverlay = new DebugOverlay();
+    }
+
+    _useFantasyTreeRenderer(tree) {
+        return Boolean(tree?.canopy || tree?.tropical)
+            && this.theme?.world?.scenery?.useFantasyTrees !== false;
     }
 
     _generatePaths() {
@@ -5075,16 +5080,19 @@ export class IsometricRenderer {
 
     _buildDistrictPropSprites() {
         if (!this.sprites) return [];
-        const sprites = this._buildVillageWallSprites();
-        sprites.push(new StaticPropSprite({
-            tileX: VILLAGE_GATE.tileX,
-            tileY: VILLAGE_GATE.tileY,
-            id: VILLAGE_GATE.id,
-            bounds: VILLAGE_GATE_BOUNDS,
-            splitForOcclusion: true,
-            drawFn: (ctx, x, y) => this._drawVillageGatehouse(ctx, x, y),
-        }));
-        sprites.push(...this._buildVillageWallTerminalSprites());
+        const includeVillageEnclosure = this.theme?.world?.scenery?.villageEnclosure !== false;
+        const sprites = includeVillageEnclosure ? this._buildVillageWallSprites() : [];
+        if (includeVillageEnclosure) {
+            sprites.push(new StaticPropSprite({
+                tileX: VILLAGE_GATE.tileX,
+                tileY: VILLAGE_GATE.tileY,
+                id: VILLAGE_GATE.id,
+                bounds: VILLAGE_GATE_BOUNDS,
+                splitForOcclusion: true,
+                drawFn: (ctx, x, y) => this._drawVillageGatehouse(ctx, x, y),
+            }));
+            sprites.push(...this._buildVillageWallTerminalSprites());
+        }
         sprites.push(...this._buildWatchtowerBeaconBuoySprites());
         sprites.push(...DISTRICT_PROPS
             .filter((prop) => prop.layer === 'sorted')
