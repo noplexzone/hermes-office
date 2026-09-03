@@ -101,6 +101,7 @@ test('local asset mount serves contained files and rejects missing, traversal, a
   fs.writeFileSync(path.join(root, 'theme/manifest.yaml'), 'style: {}\n');
   fs.writeFileSync(path.join(outside, 'secret.txt'), 'private');
   fs.symlinkSync(path.join(outside, 'secret.txt'), path.join(root, 'theme/outside.txt'));
+  fs.symlinkSync(outside, path.join(root, 'theme/outside-dir'));
   const { child, port } = await startFixtureServer({ root });
   try {
     const valid = await fetch(`http://127.0.0.1:${port}/local-assets/theme/manifest.yaml`);
@@ -111,6 +112,7 @@ test('local asset mount serves contained files and rejects missing, traversal, a
     assert.equal(await rawStatus(port, '/local-assets/theme/missing.png'), 404);
     assert.ok([403, 404].includes(await rawStatus(port, '/local-assets/%2e%2e/secret.txt')));
     assert.equal(await rawStatus(port, '/local-assets/theme/outside.txt'), 403);
+    assert.equal(await rawStatus(port, '/local-assets/theme/outside-dir/secret.txt'), 403);
   } finally {
     await stopServer(child);
     fs.rmSync(root, { recursive: true, force: true });

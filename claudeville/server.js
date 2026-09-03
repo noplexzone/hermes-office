@@ -510,14 +510,33 @@ function handleGetChangelog(req, res) {
 // ─── Static file serving ─────────────────────────────────────
 
 function containedReadErrorStatus(error) {
-  if (['EACCES', 'EPERM', 'ELOOP', 'ESTALE'].includes(error?.code)) return 403;
+  if (['EACCES', 'EPERM', 'ELOOP', 'ESTALE', 'ENXIO'].includes(error?.code)) return 403;
   if (['ENOENT', 'ENOTDIR'].includes(error?.code)) return 404;
   return 500;
 }
 
 function readContainedFile(filePath, realRoot, callback) {
-  const flags = fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0);
-  fs.open(filePath, flags, (openError, fd) => {
+  let expectedPath;
+  try {
+    expectedPath = realpathExistingPath(filePath);
+    if (!isContainedPath(realRoot, expectedPath)) {
+      const error = new Error('Resolved path escapes configured root');
+      error.code = 'EACCES';
+      return callback(error);
+    }
+    if (!fs.statSync(expectedPath).isFile()) {
+      const error = new Error('Not a regular file');
+      error.code = 'EACCES';
+      return callback(error);
+    }
+  } catch (error) {
+    return callback(error);
+  }
+
+  const flags = fs.constants.O_RDONLY
+    | (fs.constants.O_NOFOLLOW || 0)
+    | (fs.constants.O_NONBLOCK || 0);
+  fs.open(expectedPath, flags, (openError, fd) => {
     if (openError) return callback(openError);
     let finished = false;
     const finish = (error, data = null, resolvedPath = null) => {

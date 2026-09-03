@@ -10337,7 +10337,7 @@ export class IsometricRenderer {
     }
 
     _villageGateLightSources(lighting = null) {
-        if (!VILLAGE_GATE) return [];
+        if (!VILLAGE_GATE || this.theme?.world?.scenery?.villageEnclosure === false) return [];
         const leftBase = this._tileToWorld(VILLAGE_GATE.tileX - VILLAGE_GATE_TOWER_HALF_TILES, VILLAGE_GATE.tileY);
         const rightBase = this._tileToWorld(VILLAGE_GATE.tileX + VILLAGE_GATE_TOWER_HALF_TILES, VILLAGE_GATE.tileY);
         const phaseBoost = Math.max(0.6, lighting?.lightBoost ?? 1);

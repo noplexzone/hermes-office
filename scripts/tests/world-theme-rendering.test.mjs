@@ -360,6 +360,7 @@ test('theme scenery policy replaces authored fantasy trees and can omit the vill
   renderer.pathTiles = new Set();
   renderer.bridgeTiles = new Set();
   assert.deepEqual(renderer._buildDistrictPropSprites(), []);
+  assert.deepEqual(renderer._villageGateLightSources(), []);
 
   renderer.theme = getWorldTheme(DEFAULT_WORLD_THEME_ID);
   renderer._buildVillageWallSprites = () => ['wall'];
